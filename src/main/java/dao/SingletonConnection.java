@@ -1,16 +1,44 @@
 package dao;
-
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
 
 public class SingletonConnection {
+        Properties props=new Properties();
+        private static String user;
+        private static String password;
+        private static String url;
+        private static Connection connect;
+        private SingletonConnection() {
+                try {
+//Badel el parametre f el conf.properties ya sof
+                	props.load(new FileInputStream("conf.properties"));
+                    url=props.getProperty("jdbc.url");
+                    user=props.getProperty("jdbc.user");
+                    password=props.getProperty("jdbc.password");
+                    connect = DriverManager.getConnection(url, user, password);
+     //System.out.println("connecte");
+                }
+                catch (SQLException e)
+                { e.printStackTrace();
+                }
+                catch(IOException e)
+        {
+	            e.printStackTrace();
+        }
+        }
+//Méthode qui retourne l’instance et la créer si elle n'existe pas
+        public static Connection getInstance(){
+                if(connect == null){
 
-    private static final String url = "jdbc:mysql://localhost:3306/tp1";
-    private static final String user = "root";
-    private static final String password = "welc0me";
+                new SingletonConnection();
+        }
+        return connect;
+        }
 
 
-    public static Connection SingletonConnection() throws Exception {
-        return DriverManager.getConnection(url, user, password);
-    }
+
 }
