@@ -20,7 +20,7 @@ public class SingletonConnection {
                     user=props.getProperty("jdbc.user");
                     password=props.getProperty("jdbc.password");
                     connect = DriverManager.getConnection(url, user, password);
-     //System.out.println("connecte");
+     System.out.println("connecte");
                 }
                 catch (SQLException e)
                 { e.printStackTrace();
