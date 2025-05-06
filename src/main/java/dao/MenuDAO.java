@@ -32,7 +32,6 @@ public class MenuDAO {
 
     }
 
-    public void miseAJourMenu( Menu menu) throws ClassNotFoundException, SQLException {
         String sql = "Update menu set nom=?, description=? where idMenu=?";
         try (Connection conn = SingletonConnection.getInstance();
         PreparedStatement ps = conn.prepareStatement(sql)) {
