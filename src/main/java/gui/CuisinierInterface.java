@@ -194,7 +194,14 @@ public class CuisinierInterface extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("Voir le menu button clicked!");
-                // Add code here to display the menu
+                // Close the current CuisinierInterface window
+                CuisinierInterface.this.dispose();
+                // Open the ListeDePlatsInterface window
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        new ListeDePlatsInterface().setVisible(true);
+                    }
+                });
             }
         });
 
