@@ -1,4 +1,140 @@
 package dao;
 
+import model.Utilisateur;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 public class UtilisateurDAO {
+
+    private Connection connection;
+
+    public UtilisateurDAO() {
+        connection = SingletonConnection.getInstance(); // ← Correction ici
+    }
+
+    // Créer un utilisateur
+    public boolean insertUtilisateur(Utilisateur utilisateur) {
+        try {
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO utilisateur(nomUtilisateur, motDePasse, role) VALUES (?, ?, ?)"
+            );
+            ps.setString(1, utilisateur.getNomUtilisateur());
+            ps.setString(2, utilisateur.getMotDePasse());
+            ps.setString(3, utilisateur.getRole());
+            int rows = ps.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Lire un utilisateur par ID
+    public Utilisateur getUtilisateurById(int id) {
+        Utilisateur utilisateur = null;
+        try {
+            PreparedStatement ps = connection.prepareStatement(
+                    "SELECT * FROM utilisateur WHERE idUtilisateur = ?"
+            );
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                utilisateur = new Utilisateur();
+                utilisateur.setIdUtilisateur(rs.getInt("idUtilisateur"));
+                utilisateur.setNomUtilisateur(rs.getString("nomUtilisateur"));
+                utilisateur.setMotDePasse(rs.getString("motDePasse"));
+                utilisateur.setRole(rs.getString("role"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return utilisateur;
+    }
+
+    // Lire tous les utilisateurs
+    public List<Utilisateur> getAllUtilisateurs() {
+        List<Utilisateur> utilisateurs = new ArrayList<>();
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM utilisateur");
+            while (rs.next()) {
+                Utilisateur utilisateur = new Utilisateur();
+                utilisateur.setIdUtilisateur(rs.getInt("idUtilisateur"));
+                utilisateur.setNomUtilisateur(rs.getString("nomUtilisateur"));
+                utilisateur.setMotDePasse(rs.getString("motDePasse"));
+                utilisateur.setRole(rs.getString("role"));
+                utilisateurs.add(utilisateur);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return utilisateurs;
+    }
+
+    // Mettre à jour un utilisateur
+    public boolean updateUtilisateur(Utilisateur utilisateur) {
+        try {
+            PreparedStatement ps = connection.prepareStatement(
+                    "UPDATE utilisateur SET nomUtilisateur = ?, motDePasse = ?, role = ? WHERE idUtilisateur = ?"
+            );
+            ps.setString(1, utilisateur.getNomUtilisateur());
+            ps.setString(2, utilisateur.getMotDePasse());
+            ps.setString(3, utilisateur.getRole());
+            ps.setInt(4, utilisateur.getIdUtilisateur());
+            int rows = ps.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Supprimer un utilisateur
+    public boolean deleteUtilisateur(int id) {
+        try {
+            PreparedStatement ps = connection.prepareStatement(
+                    "DELETE FROM utilisateur WHERE idUtilisateur = ?"
+            );
+            ps.setInt(1, id);
+            int rows = ps.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Authentifier un utilisateur
+    public boolean authentifier(String nomUtilisateur, String motDePasse) {
+        try {
+            PreparedStatement ps = connection.prepareStatement(
+                    "SELECT * FROM utilisateur WHERE nomUtilisateur = ? AND motDePasse = ?"
+            );
+            ps.setString(1, nomUtilisateur);
+            ps.setString(2, motDePasse);
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Obtenir le rôle d’un utilisateur
+    public String obtenirRole(String nomUtilisateur) {
+        try {
+            PreparedStatement ps = connection.prepareStatement(
+                    "SELECT role FROM utilisateur WHERE nomUtilisateur = ?"
+            );
+            ps.setString(1, nomUtilisateur);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("role");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
