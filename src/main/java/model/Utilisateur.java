@@ -36,7 +36,7 @@ public class Utilisateur {
         this.nomUtilisateur = nomUtilisateur;
     }
 
-    public String obtenirRole() {
+    public String getRole() {
         return role;
     }
 
