@@ -7,7 +7,7 @@ public class MenuDAO {
     public List<Menu> getMenuList() throws ClassNotFoundException, SQLException {
         List<Menu> menuList = new ArrayList<>();
         String sql = "select * from menu";
-//aaaaaaaaahhhhhh menek ya sof
+//aaaaaaaaahhhhhh menek ya sofien
         try (Connection conn = SingletonConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
