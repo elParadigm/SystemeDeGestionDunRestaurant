@@ -5,15 +5,18 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import javax.imageio.ImageIO;
-import java.net.URL; // Added for resource loading
+import java.io.File; // Keep File import for file-based loading
+import javax.imageio.ImageIO; // Keep ImageIO import for image loading
 
 // Assuming BackgroundPanel is in the same 'gui' package or accessible
 // import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
 
 // Import the Login class to allow returning to the login page
 import gui.Login;
+// Import the ListeDePlatsInterface class (assuming this link is still needed)
+import gui.ListeDePlatsInterface;
+// Import the ChefOrderInterface class
+import gui.ChefOrderInterface;
 
 
 public class CuisinierInterface extends JFrame {
@@ -38,9 +41,8 @@ public class CuisinierInterface extends JFrame {
 
         // Create the main panel using the custom BackgroundPanel with an image
         // Assuming BackgroundPanel is defined elsewhere and accessible.
-        // Replace "path/to/your/background_image.jpg" with the actual path to your image file
-        // Using a placeholder image path for now. Update this to your actual image path.
-        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg");
+        // IMPORTANT: Replace "path/to/your/background_image.jpg" with the actual path to your image file
+        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg"); // Update path if needed
         // mainPanel.setBackground(COLOR_BACKGROUND); // Background color is handled by the image
         mainPanel.setLayout(new GridBagLayout()); // Use GridBagLayout for layout within the background panel
 
@@ -116,9 +118,12 @@ public class CuisinierInterface extends JFrame {
         // Load the image icon
         ImageIcon backIcon = null;
         try {
-
-            Image img = ImageIO.read(new File("arrow.png"));
-            backIcon = new ImageIcon(img);
+            // Load from a file:
+            // IMPORTANT: Update this path to where your back arrow icon is located
+            Image img = ImageIO.read(new File("arrow.png")); // Load image from file
+            // Removed scaling to keep original icon size
+            // Image scaledImg = img.getScaledInstance(30, 30, Image.SCALE_SMOOTH); // Resize to 30x30 pixels
+            backIcon = new ImageIcon(img); // Use original image
 
         } catch (Exception e) {
             System.err.println("Error loading back arrow icon: " + e.getMessage());
@@ -189,7 +194,7 @@ public class CuisinierInterface extends JFrame {
         add(mainPanel);
 
 
-        // Add ActionListeners to the buttons (currently just print messages)
+        // Add ActionListeners to the buttons
         viewMenuButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -209,7 +214,14 @@ public class CuisinierInterface extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("Voir les ordres button clicked!");
-                // Add code here to display the orders
+                // Close the current CuisinierInterface window
+                CuisinierInterface.this.dispose();
+                // Open the ChefOrderInterface window
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        new ChefOrderInterface().setVisible(true);
+                    }
+                });
             }
         });
     }
