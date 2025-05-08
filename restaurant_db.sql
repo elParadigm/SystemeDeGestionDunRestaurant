@@ -113,8 +113,6 @@ DROP TABLE IF EXISTS `utilisateur`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `utilisateur` (
   `idUtilisateur` int NOT NULL AUTO_INCREMENT,
-  `nom` varchar(100) NOT NULL,
-  `prenom` varchar(100) DEFAULT NULL,
   `nomUtilisateur` varchar(100) NOT NULL,
   `motDePasse` varchar(100) NOT NULL,
   `role` enum('client','serveuse','cuisinier') NOT NULL,
@@ -132,4 +130,4 @@ CREATE TABLE `utilisateur` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-05-08 13:40:40
+-- Dump completed on 2025-05-08 19:22:10
