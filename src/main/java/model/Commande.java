@@ -20,7 +20,9 @@ public class Commande {
         this.plats = new ArrayList<>();
         this.Statut = statut;
     }
-
+    public  Commande(){
+        super();
+    }
     public Date getHorodatage() {
         return horodatage;
     }
