@@ -5,6 +5,7 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 
+import controller.UtilisateurController;
 import gui.Login;
 
 
@@ -209,20 +210,40 @@ public class Signup extends JFrame { // Changed class name to Signup
         signupButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Get the username and password from the text fields
+                // Récupérer les champs
                 String username = userTextField.getText();
-                String password = new String(passTextField.getPassword()); // Get password as char array and convert to String
-                String selectedRole = (String) roleComboBox.getSelectedItem(); // Get the selected role from the combo box
+                String password = new String(passTextField.getPassword());
+                String selectedRole = (String) roleComboBox.getSelectedItem();
 
-                // Display a message dialog with the entered information (for demonstration)
-                JOptionPane.showMessageDialog(Signup.this, // Changed class reference
-                        "Username: " + username + "\nPassword: " + (password.isEmpty() ? "[empty]" : "********") + "\nRole: " + selectedRole,
-                        "Sign Up Attempt",
-                        JOptionPane.INFORMATION_MESSAGE);
+                // Vérifier que tous les champs sont remplis
+                if (username.isEmpty() || password.isEmpty() || selectedRole == null) {
+                    JOptionPane.showMessageDialog(Signup.this,
+                            "Veuillez remplir tous les champs.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
 
-                // In a real application, you would process the sign-up data here (e.g., save to a database)
-                // After successful sign-up, you might close this window and open the main application window
-                // dispose(); // Uncomment to close the sign-up window
+                // Appeler le contrôleur
+                UtilisateurController controller = new UtilisateurController();
+                boolean success = controller.inscrireUtilisateur(username, password, selectedRole);
+
+                // Afficher un message selon le résultat
+                if (success) {
+                    JOptionPane.showMessageDialog(Signup.this,
+                            "Inscription réussie, bienvenue " + username + " !",
+                            "Succès",
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                    // Optionnel : fermer cette fenêtre et retourner à Login
+                    Signup.this.dispose();
+                    new Login().setVisible(true);
+                } else {
+                    JOptionPane.showMessageDialog(Signup.this,
+                            "Échec de l'inscription. Vérifiez vos informations.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
     }
