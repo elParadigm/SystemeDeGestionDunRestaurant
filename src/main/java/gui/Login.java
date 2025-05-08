@@ -190,11 +190,15 @@ public class Login extends JFrame {
                 String username = userTextField.getText();
                 String password = new String(passTextField.getPassword());
 
+                // Appel au contrôleur
                 UtilisateurController controller = new UtilisateurController();
-                boolean success = controller.connecterUtilisateur(username, password);
+                boolean loginSuccess = controller.connecterUtilisateur(username, password);
 
-                if (success) {
+                if (loginSuccess) {
                     String role = controller.obtenirRoleUtilisateur(username);
+
+                    // Ferme la fenêtre Login
+                    dispose();
 
                     // Redirection selon le rôle
                     switch (role) {
@@ -208,12 +212,8 @@ public class Login extends JFrame {
                             new ServeuseInterface().setVisible(true);
                             break;
                         default:
-                            JOptionPane.showMessageDialog(Login.this, "Rôle inconnu.");
-                            return;
+                            JOptionPane.showMessageDialog(Login.this, "Rôle inconnu !");
                     }
-
-                    // Fermer la fenêtre Login
-                    dispose();
 
                 } else {
                     JOptionPane.showMessageDialog(Login.this,

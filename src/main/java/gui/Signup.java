@@ -210,37 +210,26 @@ public class Signup extends JFrame { // Changed class name to Signup
         signupButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Récupérer les champs
                 String username = userTextField.getText();
                 String password = new String(passTextField.getPassword());
-                String selectedRole = (String) roleComboBox.getSelectedItem();
+                String role = (String) roleComboBox.getSelectedItem();
 
-                // Vérifier que tous les champs sont remplis
-                if (username.isEmpty() || password.isEmpty() || selectedRole == null) {
-                    JOptionPane.showMessageDialog(Signup.this,
-                            "Veuillez remplir tous les champs.",
-                            "Erreur",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                // Appeler le contrôleur
+                // Appel au contrôleur
                 UtilisateurController controller = new UtilisateurController();
-                boolean success = controller.inscrireUtilisateur(username, password, selectedRole);
+                boolean success = controller.inscrireUtilisateur(username, password, role);
 
-                // Afficher un message selon le résultat
                 if (success) {
                     JOptionPane.showMessageDialog(Signup.this,
-                            "Inscription réussie, bienvenue " + username + " !",
+                            "Inscription réussie ! Bienvenue " + username,
                             "Succès",
                             JOptionPane.INFORMATION_MESSAGE);
 
-                    // Optionnel : fermer cette fenêtre et retourner à Login
-                    Signup.this.dispose();
+                    // Fermer cette fenêtre et ouvrir Login
+                    dispose();
                     new Login().setVisible(true);
                 } else {
                     JOptionPane.showMessageDialog(Signup.this,
-                            "Échec de l'inscription. Vérifiez vos informations.",
+                            "Échec de l'inscription.",
                             "Erreur",
                             JOptionPane.ERROR_MESSAGE);
                 }
