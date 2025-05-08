@@ -14,7 +14,9 @@ public class Facture {
         this.idFacture = idFacture;
         this.montantTotal = montantTotal;
     }
-
+    public Facture() {
+            super();
+    }
     public Date getHorodatage() {
         return horodatage;
     }
