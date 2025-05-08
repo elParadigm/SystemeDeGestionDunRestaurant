@@ -14,6 +14,9 @@ public class Plat {
         this.nom = nom;
         this.prix = prix;
     }
+    public Plat(){
+
+    }
 
     public String getDescription() {
         return description;
