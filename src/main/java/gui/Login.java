@@ -8,6 +8,7 @@ import java.awt.event.*;
 // import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
 
 // Import the Signup class from the same package
+import controller.UtilisateurController;
 import gui.Signup;
 
 
@@ -186,15 +187,26 @@ public class Login extends JFrame {
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Get the username and password from the text fields
                 String username = userTextField.getText();
-                String password = new String(passTextField.getPassword()); // Get password as char array and convert to String
+                String password = new String(passTextField.getPassword());
 
-                // Display a message dialog with the entered information (for demonstration)
-                JOptionPane.showMessageDialog(Login.this, // Changed class reference
-                        "Username: " + username + "\nPassword: " + (password.isEmpty() ? "[empty]" : "********"),
-                        "Login Attempt",
-                        JOptionPane.INFORMATION_MESSAGE);
+                UtilisateurController controller = new UtilisateurController();
+                boolean success = controller.connecterUtilisateur(username, password);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(Login.this,
+                            "Connexion réussie ! Bienvenue, " + username,
+                            "Succès",
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                    dispose(); // Ferme la fenêtre Login
+                    // Redirige vers l'interface principale selon le rôle
+                } else {
+                    JOptionPane.showMessageDialog(Login.this,
+                            "Nom d'utilisateur ou mot de passe incorrect.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
     }

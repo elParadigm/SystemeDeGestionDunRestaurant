@@ -1,6 +1,8 @@
 package dao;
 
 import model.Utilisateur;
+import org.mindrot.jbcrypt.BCrypt;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,19 +108,21 @@ public class UtilisateurDAO {
     }
 
     // Authentifier un utilisateur
-    public boolean authentifier(String nomUtilisateur, String motDePasse) {
-        try {
-            PreparedStatement ps = connection.prepareStatement(
-                    "SELECT * FROM utilisateur WHERE nomUtilisateur = ? AND motDePasse = ?"
-            );
-            ps.setString(1, nomUtilisateur);
-            ps.setString(2, motDePasse);
+    public boolean authentifier(String username, String password) {
+        String sql = "SELECT motDePasse FROM utilisateur WHERE nomUtilisateur = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
-            return rs.next();
+
+            if (rs.next()) {
+                String hashedPasswordInDB = rs.getString("motDePasse");
+                return BCrypt.checkpw(password, hashedPasswordInDB);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
+        return false;
     }
 
     // Obtenir le rôle d’un utilisateur
