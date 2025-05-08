@@ -15,6 +15,8 @@ import javax.imageio.ImageIO; // Keep ImageIO import for image loading
 import gui.Login;
 // Import the ClientMenuInterface class (assuming the server needs to access this)
 import gui.ClientMenuInterface;
+// Import the ServeuseOrderInterface class
+import gui.ServeuseOrderInterface;
 
 
 public class ServeuseInterface extends JFrame { // Changed class name
@@ -125,7 +127,35 @@ public class ServeuseInterface extends JFrame { // Changed class name
 
         } catch (Exception e) {
             System.err.println("Error loading back arrow icon: " + e.getMessage());
-            // Fallback to text if icon loading fails
+        }
+
+        if (backIcon != null) {
+            backIconLabel.setIcon(backIcon); // Set the loaded icon
+            backIconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Change cursor on hover
+            backIconLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding
+
+            backIconLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    System.out.println("Back icon clicked!");
+                    ServeuseInterface.this.dispose(); // Changed class reference
+                    SwingUtilities.invokeLater(new Runnable() {
+                        public void run() {
+                            new Login().setVisible(true);
+                        }
+                    });
+                }
+            });
+
+            // Add the back icon label to the mainPanel using GridBagLayout
+            GridBagConstraints iconGbc = new GridBagConstraints();
+            iconGbc.gridx = 0; // Column 0
+            iconGbc.gridy = 0; // Row 0
+            iconGbc.anchor = GridBagConstraints.NORTHWEST; // Position at top-left
+            iconGbc.insets = new Insets(10, 10, 0, 0); // Add padding around the icon
+            mainPanel.add(backIconLabel, iconGbc);
+        } else {
+            // Fallback text label if icon loading fails
             JLabel fallbackBackLabel = new JLabel("←");
             fallbackBackLabel.setFont(new Font("Arial", Font.BOLD, 24));
             fallbackBackLabel.setForeground(COLOR_TEXT_DARK);
@@ -135,7 +165,7 @@ public class ServeuseInterface extends JFrame { // Changed class name
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     System.out.println("Back button (fallback) clicked!");
-                    ServeuseInterface.this.dispose(); // Changed class reference
+                    ServeuseInterface.this.dispose();
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             new Login().setVisible(true);
@@ -153,39 +183,6 @@ public class ServeuseInterface extends JFrame { // Changed class name
             // Add the main background panel to the JFrame
             add(mainPanel);
             return; // Exit constructor if fallback is used
-        }
-
-        if (backIcon != null) {
-            backIconLabel.setIcon(backIcon); // Set the loaded icon
-            backIconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Change cursor on hover
-            // Add padding around the icon
-            backIconLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-            // Add a MouseListener to the back icon label
-            backIconLabel.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    // This method is called when the mouse is clicked on the label
-                    System.out.println("Back icon clicked!");
-                    // Close the current ServeuseInterface window
-                    ServeuseInterface.this.dispose(); // Changed class reference
-
-                    // Open the Login window on the Event Dispatch Thread
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            new Login().setVisible(true);
-                        }
-                    });
-                }
-            });
-
-            // Add the back icon label to the mainPanel using GridBagLayout
-            GridBagConstraints iconGbc = new GridBagConstraints();
-            iconGbc.gridx = 0; // Column 0
-            iconGbc.gridy = 0; // Row 0
-            iconGbc.anchor = GridBagConstraints.NORTHWEST; // Position at top-left
-            iconGbc.insets = new Insets(10, 10, 0, 0); // Add padding around the icon
-            mainPanel.add(backIconLabel, iconGbc);
         }
 
         // Add the main background panel to the JFrame
@@ -212,8 +209,14 @@ public class ServeuseInterface extends JFrame { // Changed class name
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("Voir command button clicked!");
-                // Add code here to display the command interface for the serveuse
-                // This would be a new interface similar to the chef's order list
+                // Close the current ServeuseInterface window
+                ServeuseInterface.this.dispose();
+                // Open the ServeuseOrderInterface window
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        new ServeuseOrderInterface().setVisible(true);
+                    }
+                });
             }
         });
     }
