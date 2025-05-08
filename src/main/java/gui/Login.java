@@ -194,13 +194,27 @@ public class Login extends JFrame {
                 boolean success = controller.connecterUtilisateur(username, password);
 
                 if (success) {
-                    JOptionPane.showMessageDialog(Login.this,
-                            "Connexion réussie ! Bienvenue, " + username,
-                            "Succès",
-                            JOptionPane.INFORMATION_MESSAGE);
+                    String role = controller.obtenirRoleUtilisateur(username);
 
-                    dispose(); // Ferme la fenêtre Login
-                    // Redirige vers l'interface principale selon le rôle
+                    // Redirection selon le rôle
+                    switch (role) {
+                        case "client":
+                            new ClientMenuInterface().setVisible(true);
+                            break;
+                        case "cuisinier":
+                            new CuisinierInterface().setVisible(true);
+                            break;
+                        case "serveuse":
+                            new ServeuseInterface().setVisible(true);
+                            break;
+                        default:
+                            JOptionPane.showMessageDialog(Login.this, "Rôle inconnu.");
+                            return;
+                    }
+
+                    // Fermer la fenêtre Login
+                    dispose();
+
                 } else {
                     JOptionPane.showMessageDialog(Login.this,
                             "Nom d'utilisateur ou mot de passe incorrect.",
