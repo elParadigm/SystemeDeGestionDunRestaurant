@@ -27,6 +27,7 @@ CREATE TABLE `commande` (
   `idClient` int NOT NULL,
   `dateCommande` datetime DEFAULT CURRENT_TIMESTAMP,
   `statut` enum('en_attente','en_traitement','pretee','annulee','terminee') DEFAULT 'en_attente',
+  `montantTotal` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`idCommande`),
   KEY `idClient` (`idClient`),
   CONSTRAINT `commande_ibfk_1` FOREIGN KEY (`idClient`) REFERENCES `utilisateur` (`idUtilisateur`) ON DELETE CASCADE
@@ -62,7 +63,7 @@ CREATE TABLE `facture` (
   `idFacture` int NOT NULL AUTO_INCREMENT,
   `idCommande` int NOT NULL,
   `dateFacture` datetime DEFAULT CURRENT_TIMESTAMP,
-  `total` decimal(10,2) DEFAULT NULL,
+  `montantTotal` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`idFacture`),
   KEY `idCommande` (`idCommande`),
   CONSTRAINT `facture_ibfk_1` FOREIGN KEY (`idCommande`) REFERENCES `commande` (`idCommande`) ON DELETE CASCADE
@@ -131,4 +132,4 @@ CREATE TABLE `utilisateur` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-05-03 23:27:11
+-- Dump completed on 2025-05-08 13:40:40
