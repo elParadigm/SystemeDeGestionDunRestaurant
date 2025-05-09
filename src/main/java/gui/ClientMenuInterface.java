@@ -5,52 +5,29 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.File; // Keep File import for file-based loading
-import javax.imageio.ImageIO; // Keep ImageIO import for image loading
+import java.io.File; // Keep File import for file-based loading (for icons)
+import javax.imageio.ImageIO; // Keep ImageIO import for image loading (for icons)
+import java.io.IOException; // Import IOException for image handling
+import java.io.ByteArrayInputStream; // Import ByteArrayInputStream
 
-import java.util.ArrayList; // To manage the list of dishes
-import java.util.List; // To manage the list of dishes
+import java.util.ArrayList; // To manage the list of dishes and cart items
+import java.util.List; // To manage the list of dishes and cart items
+import java.util.Date; // Import Date class
+
+// Import your Plat model class and PlatDAO class
+import model.Plat; // Assuming your Plat model is in a 'model' package
+import dao.PlatDAO; // Assuming your PlatDAO is in a 'dao' package
+import dao.CommandeDAO; // Import CommandeDAO
 
 // Assuming BackgroundPanel is in the same 'gui' package or accessible
 // import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
 
 // Import the Login class to allow returning
 import gui.Login;
+import model.Commande; // Import Commande model
+import model.Utilisateur; // Import Utilisateur model to potentially store logged-in user
 
 // Define a simple class to represent an item in the cart
-class CartItem {
-    private String name;
-    private String price; // Storing price as String for simplicity as in DishPanel
-    private int quantity;
-
-    public CartItem(String name, String price, int quantity) {
-        this.name = name;
-        this.price = price;
-        this.quantity = quantity;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getPrice() {
-        return price;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
-
-    // Override toString for easy display in a list
-    @Override
-    public String toString() {
-        return quantity + " x " + name + " (" + price + ")";
-    }
-}
 
 // Custom JPanel for displaying a single dish item for the client menu
 class ClientDishPanel extends JPanel {
@@ -61,11 +38,17 @@ class ClientDishPanel extends JPanel {
     private JSpinner quantitySpinner; // Spinner for quantity selection
     private JButton addToCartButton; // Button to add to cart
 
+    // Store the associated Plat object
+    private Plat plat;
+
     // Reference to the parent ClientMenuInterface to add items to the cart
     private ClientMenuInterface parentInterface;
 
-    public ClientDishPanel(String imageName, String name, String description, String price, ClientMenuInterface parentInterface) { // Added parentInterface parameter
+    // Updated constructor to accept a Plat object and parentInterface
+    public ClientDishPanel(Plat plat, ClientMenuInterface parentInterface) {
+        this.plat = plat; // Store the Plat object
         this.parentInterface = parentInterface;
+
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS)); // Arrange components vertically
         setBackground(new Color(250, 246, 233)); // Use a color similar to the panel background
         setBorder(BorderFactory.createCompoundBorder(
@@ -79,42 +62,23 @@ class ClientDishPanel extends JPanel {
 
         // Image Label
         imageLabel = new JLabel();
-        // Attempt to load the image from a file and scale it
-        ImageIcon dishIcon = null;
-        try {
-            // Load from a file:
-            // IMPORTANT: Update this path to where your dish images are located
-            Image img = ImageIO.read(new File(imageName)); // Load image from file
-            // Scaling to fit the image within the panel
-            Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH); // Scale image to 100x100
-            dishIcon = new ImageIcon(scaledImg); // Use the scaled image
-
-        } catch (Exception e) {
-            System.err.println("Error loading dish image: " + e.getMessage());
-            // Fallback to text if loading fails
-            imageLabel.setText("Image");
-            imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        }
-
-        if (dishIcon != null) {
-            imageLabel.setIcon(dishIcon);
-        }
+        updateImage(plat.getImage()); // Load and set the image from Plat object's byte array
         imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
 
         // Name Label
-        nameLabel = new JLabel(name);
+        nameLabel = new JLabel(plat.getNom()); // Get name from Plat object
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         nameLabel.setForeground(new Color(50, 50, 50));
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
 
         // Description Label
-        descriptionLabel = new JLabel("<html><body style='text-align:center;'>" + description + "</body></html>"); // Use HTML for centering text
+        descriptionLabel = new JLabel("<html><body style='text-align:center;'>" + plat.getDescription() + "</body></html>"); // Get description from Plat object
         descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         descriptionLabel.setForeground(new Color(80, 80, 80));
         descriptionLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
 
         // Price Label
-        priceLabel = new JLabel(price); // Set the price text
+        priceLabel = new JLabel(String.format("%.2f €", plat.getPrix())); // Get price from Plat object and format
         priceLabel.setFont(new Font("Arial", Font.BOLD, 14));
         priceLabel.setForeground(new Color(0, 100, 0)); // Green color for price
         priceLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
@@ -146,8 +110,8 @@ class ClientDishPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 // Get the selected quantity from the spinner
                 int quantity = (int) quantitySpinner.getValue();
-                // Create a CartItem and add it to the cart in the parent interface
-                CartItem item = new CartItem(nameLabel.getText(), priceLabel.getText(), quantity);
+                // Create a CartItem using the Plat object and quantity
+                CartItem item = new CartItem(plat, quantity);
                 if (parentInterface != null) {
                     parentInterface.addItemToCart(item);
                     // Optionally, reset the spinner to 1 after adding
@@ -171,6 +135,37 @@ class ClientDishPanel extends JPanel {
         add(addToCartButton); // Add add to cart button
         add(Box.createRigidArea(new Dimension(0, 5))); // Spacer
     }
+
+    // Helper method to load and scale the image from byte array
+    private void updateImage(byte[] imageData) {
+        ImageIcon dishIcon = null;
+        if (imageData != null && imageData.length > 0) { // Check if image data is not null and not empty
+            try {
+                // Load image from byte array
+                BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageData));
+                if (originalImage != null) {
+                    // Scaling to fit the image within the panel
+                    Image scaledImg = originalImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH); // Scale image to 100x100
+                    dishIcon = new ImageIcon(scaledImg); // Use the scaled image
+                } else {
+                    System.err.println("Could not read image from byte data.");
+                }
+
+            } catch (IOException e) {
+                System.err.println("Error loading dish image from byte data: " + e.getMessage());
+                // Fallback to text if loading fails
+                imageLabel.setText("Image Load Error"); // More specific error message
+                imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                dishIcon = null; // Ensure icon is null on failure
+            }
+        } else {
+            // Fallback if image data is null or empty
+            imageLabel.setText("No Image");
+            imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            dishIcon = null;
+        }
+        imageLabel.setIcon(dishIcon); // Set the icon (or null if loading failed)
+    }
 }
 
 // Dialog for displaying the shopping cart
@@ -180,6 +175,7 @@ class CartDialog extends JDialog {
     private JButton removeButton;
     private JButton closeButton;
     private JButton checkoutButton; // Added checkout button
+    private JLabel totalLabel; // Label to display total price
 
     // Reference to the main ClientMenuInterface to update the cart data
     private ClientMenuInterface parentInterface;
@@ -208,6 +204,13 @@ class CartDialog extends JDialog {
         scrollPane.getViewport().setOpaque(false);
 
         add(scrollPane, BorderLayout.CENTER);
+
+        // Total Label
+        totalLabel = new JLabel("Total: 0.00 €");
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        totalLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 5, 10)); // Add padding
+        add(totalLabel, BorderLayout.NORTH);
+
 
         // Panel for buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -251,15 +254,28 @@ class CartDialog extends JDialog {
             public void actionPerformed(ActionEvent e) {
                 // Action for checkout
                 System.out.println("Checkout button clicked!");
-                // In a real application, this would initiate the checkout process
                 if (cartListModel.isEmpty()) {
                     JOptionPane.showMessageDialog(CartDialog.this, "Votre panier est vide.", "Panier vide", JOptionPane.INFORMATION_MESSAGE);
                 } else {
-                    // Process the order...
-                    JOptionPane.showMessageDialog(CartDialog.this, "Commande passée!", "Commande", JOptionPane.INFORMATION_MESSAGE);
-                    parentInterface.clearCart(); // Clear the cart after checkout
-                    updateCartDisplay(); // Update the dialog's display after clearing
-                    dispose(); // Close the dialog
+                    // --- DATABASE INTEGRATION: Place Order ---
+                    CommandeDAO commandeDAO = new CommandeDAO();
+                    // Use the stored client ID from the parent interface
+                    int clientId = parentInterface.getLoggedInClientId(); // Get the client ID from the parent frame
+
+                    if (clientId != -1) { // Ensure a client is "logged in"
+                        boolean orderPlaced = commandeDAO.placeOrder(clientId, parentInterface.getCartItems());
+
+                        if (orderPlaced) {
+                            JOptionPane.showMessageDialog(CartDialog.this, "Commande passée avec succès!", "Commande Réussie", JOptionPane.INFORMATION_MESSAGE);
+                            parentInterface.clearCart(); // Clear the cart after checkout
+                            updateCartDisplay(); // Update the dialog's display after clearing
+                            dispose(); // Close the dialog
+                        } else {
+                            JOptionPane.showMessageDialog(CartDialog.this, "Échec de la commande. Veuillez réessayer.", "Erreur de Commande", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(CartDialog.this, "Aucun client connecté. Veuillez vous connecter pour passer une commande.", "Erreur de connexion", JOptionPane.WARNING_MESSAGE);
+                    }
                 }
             }
         });
@@ -286,16 +302,19 @@ class CartDialog extends JDialog {
 
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Populate the list with current cart items when the dialog is shown
+        // Populate the list with current cart items and update total when the dialog is shown
         updateCartDisplay();
     }
 
     // Method to update the list display from the parent interface's cart data
     public void updateCartDisplay() {
         cartListModel.clear(); // Clear the current list model
+        double total = 0;
         for (CartItem item : parentInterface.getCartItems()) {
             cartListModel.addElement(item); // Add items from the parent's cart
+            total += item.getPrice() * item.getQuantity(); // Calculate total
         }
+        totalLabel.setText(String.format("Total: %.2f €", total)); // Update total label
     }
 }
 
@@ -313,9 +332,13 @@ public class ClientMenuInterface extends JFrame { // Changed class name
 
     private JPanel dishesContainerPanel; // Panel to hold the grid of dishes
     private List<CartItem> shoppingCart; // List to hold items in the shopping cart
+    private int loggedInClientId = -1; // Field to store the logged-in client's ID
 
     // Constructor for the ClientMenuInterface class
-    public ClientMenuInterface() {
+    // Modified constructor to accept the logged-in client's ID
+    public ClientMenuInterface(int clientId) {
+        this.loggedInClientId = clientId; // Store the client ID
+
         // Initialize the shopping cart list
         shoppingCart = new ArrayList<>();
 
@@ -366,6 +389,7 @@ public class ClientMenuInterface extends JFrame { // Changed class name
                     ClientMenuInterface.this.dispose(); // Close current window
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
+                            // Assuming Login interface is where authentication happens
                             new Login().setVisible(true); // Open Login interface
                         }
                     });
@@ -405,7 +429,7 @@ public class ClientMenuInterface extends JFrame { // Changed class name
 
 
         // Title Label
-        JLabel titleLabel = new JLabel("Menu"); // Changed title
+        JLabel titleLabel = new JLabel("Menu Client"); // Changed title
         titleLabel.setFont(new Font("Arial", Font.BOLD, 40));
         titleLabel.setForeground(COLOR_TEXT_DARK);
         mainGbc.gridx = 0; // Column 0
@@ -499,38 +523,47 @@ public class ClientMenuInterface extends JFrame { // Changed class name
         // Add the main background panel to the JFrame
         add(mainPanel);
 
-        // Example: Add some initial placeholder dishes with prices
-        // IMPORTANT: Update the image paths for these placeholder dishes
-        addDish(new ClientDishPanel("row-1-column-1.png", "Pizza Margherita", "Classic pizza with tomato and mozzarella", "8.50 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-1-column-2.png", "Spaghetti Bolognese", "Pasta with meat sauce", "10.00 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-1-column-3.png", "Salade Niçoise", "Salad with tuna, olives, and vegetables", "7.00 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-1-column-4.png", "Pizza Margherita", "Classic pizza with tomato and mozzarella", "8.50 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-2-column-1.png", "Spaghetti Bolognese", "Pasta with meat sauce", "10.00 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-2-column-2.png", "Salade Niçoise", "Salad with tuna, olives, and vegetables", "7.00 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-2-column-3.png", "Pizza Margherita", "Classic pizza with tomato and mozzarella", "8.50 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-2-column-4.png", "Spaghetti Bolognese", "Pasta with meat sauce", "10.00 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-3-column-1.png", "Salade Niçoise", "Salad with tuna, olives, and vegetables", "7.00 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-3-column-2.png", "Nouveau Plat", "Description du nouveau plat", "12.00 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-3-column-3.png", "Nouveau Plat", "Description du nouveau plat", "15.50 €", this)); // Pass reference
-        addDish(new ClientDishPanel("row-3-column-4.png", "Nouveau Plat", "Description du nouveau plat", "9.00 €", this)); // Pass reference
-
-
+        // --- DATABASE INTEGRATION: Load Plats on startup ---
+        loadPlatsFromDatabase(); // Call method to load plats from DB
     }
 
-    // Method to add a dish panel to the container
-    private void addDish(ClientDishPanel dishPanel) { // Changed parameter type
-        dishesContainerPanel.add(dishPanel);
+    // Default constructor (used for testing or if client ID is set later)
+    public ClientMenuInterface() {
+        this(-1); // Call the main constructor with a default invalid ID
+    }
+
+
+    // Method to load plats from the database and display them
+    private void loadPlatsFromDatabase() {
+        dishesContainerPanel.removeAll(); // Clear existing panels
+        PlatDAO platDAO = new PlatDAO(); // Assuming you have a PlatDAO class
+        List<Plat> plats = platDAO.getAllPlats(); // Assuming getAllPlats returns a List<Plat>
+
+        if (plats != null) {
+            for (Plat plat : plats) {
+                // Create a ClientDishPanel for each Plat object and add it to the container
+                dishesContainerPanel.add(new ClientDishPanel(plat, this)); // Pass the Plat object and parent interface
+            }
+        } else {
+            // Handle case where no plats are loaded (e.g., display a message)
+            JLabel noDishesLabel = new JLabel("Aucun plat trouvé dans la base de données.");
+            noDishesLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+            noDishesLabel.setForeground(COLOR_TEXT_DARK);
+            dishesContainerPanel.add(noDishesLabel);
+        }
+
         dishesContainerPanel.revalidate(); // Re-layout the container
         dishesContainerPanel.repaint(); // Repaint the container
     }
 
+
     // Method to add an item to the shopping cart
     public void addItemToCart(CartItem item) {
-        // Check if the item is already in the cart
+        // Check if the item is already in the cart (based on Plat ID for uniqueness)
         boolean found = false;
         for (CartItem existingItem : shoppingCart) {
-            // Simple check based on name and price (you might need a unique ID in a real app)
-            if (existingItem.getName().equals(item.getName()) && existingItem.getPrice().equals(item.getPrice())) {
+            // Compare based on Plat ID
+            if (existingItem.getPlat().getIdPlat() == item.getPlat().getIdPlat()) {
                 existingItem.setQuantity(existingItem.getQuantity() + item.getQuantity()); // Increase quantity
                 found = true;
                 break;
@@ -565,6 +598,11 @@ public class ClientMenuInterface extends JFrame { // Changed class name
         System.out.println("Cart cleared."); // For debugging
     }
 
+    // Getter for the logged-in client ID
+    public int getLoggedInClientId() {
+        return loggedInClientId;
+    }
+
 
     // The main method is typically in your main application file,
     // but included here for standalone testing purposes.
@@ -584,7 +622,9 @@ public class ClientMenuInterface extends JFrame { // Changed class name
         // Run the GUI creation on the Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                new ClientMenuInterface().setVisible(true);
+                // For testing purposes, assuming a client with ID 1 is logged in.
+                // In a real application, you would get the actual client ID from your login process.
+                new ClientMenuInterface(1).setVisible(true); // Pass a placeholder client ID (e.g., 1)
             }
         });
     }

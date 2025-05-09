@@ -1,7 +1,9 @@
 package dao;
 
 import model.Commande;
-import model.Plat;
+import model.Plat; // Assuming Plat model is needed for CartItem details
+import gui.CartItem; // Import CartItem class from gui package
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
@@ -12,48 +14,153 @@ public class CommandeDAO {
     private Connection connection;
 
     public CommandeDAO() {
-        connection = SingletonConnection.getInstance();
+        connection = SingletonConnection.getInstance(); // Get connection via the singleton
     }
 
-    // Ajouter une commande sans les plats (à gérer via LigneCommandeDAO)
-    public boolean insertCommande(Commande commande) {
-        String sql = "INSERT INTO commande(idUtilisateur, horodatage, statut, montantTotal) VALUES (?, ?, ?, ?)";
+    // Insert a new commande record and return the generated ID
+    public int insertCommande(Commande commande) {
+        int generatedId = -1;
+        // Corrected SQL: dateCommande column name and removed horodatage
+        // Using idClient in SQL to match database schema, but mapping from Commande.getIdUtilisateur()
+        String sql = "INSERT INTO commande(idClient, dateCommande, statut, montantTotal) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, commande.getIdUtilisateur());
-            ps.setDate(2, new java.sql.Date(commande.getHorodatage().getTime()));
+            ps.setInt(1, commande.getIdUtilisateur()); // Use getIdUtilisateur() from Commande model
+            // Use Timestamp for dateCommande as it's a datetime field
+            ps.setTimestamp(2, new Timestamp(commande.getHorodatage().getTime())); // Use getHorodatage() from Commande model
             ps.setString(3, commande.getStatut());
             ps.setDouble(4, commande.getMontantTotal());
 
             int rowsAffected = ps.executeUpdate();
 
             if (rowsAffected > 0) {
-                ResultSet generatedKeys = ps.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    commande.setIdCommande(generatedKeys.getInt(1)); // Récupère l'id généré
+                try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        generatedId = generatedKeys.getInt(1); // Get the auto-generated ID
+                    }
                 }
-                return true;
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            // Consider logging the error or throwing a custom exception
         }
-        return false;
+        return generatedId; // Return the generated ID or -1 on failure
     }
 
-    // Obtenir une commande par ID (sans les plats)
+    // Insert a record into the commandeplat table
+    public boolean insertCommandePlat(int idCommande, int idPlat, int quantite) {
+        String sql = "INSERT INTO commandeplat(idCommande, idPlat, quantite) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idCommande);
+            ps.setInt(2, idPlat);
+            ps.setInt(3, quantite);
+
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Consider logging the error or throwing a custom exception
+            return false;
+        }
+    }
+
+    // Place an entire order (commande and commandeplat items) within a transaction
+    // This method still takes idClient as it's the parameter passed from the GUI
+    public boolean placeOrder(int idClient, List<CartItem> cartItems) {
+        if (cartItems == null || cartItems.isEmpty()) {
+            System.out.println("Cannot place an empty order.");
+            return false;
+        }
+
+        // Calculate total amount
+        double totalAmount = 0;
+        for (CartItem item : cartItems) {
+            totalAmount += item.getPrice() * item.getQuantity();
+        }
+
+        // Create the main Commande object
+        Commande newCommande = new Commande();
+        newCommande.setIdUtilisateur(idClient); // Use setIdUtilisateur() from Commande model
+        newCommande.setHorodatage(new Date()); // Use setHorodatage() from Commande model
+        newCommande.setStatut("en_attente"); // Set initial status
+        newCommande.setMontantTotal(totalAmount); // Set calculated total amount
+
+        boolean success = false;
+        try {
+            connection.setAutoCommit(false); // Start transaction
+
+            // 1. Insert the main commande record
+            int idCommande = insertCommande(newCommande);
+
+            if (idCommande != -1) {
+                // 2. Insert each item into commandeplat
+                boolean allItemsInserted = true;
+                for (CartItem item : cartItems) {
+                    // Ensure Plat object in CartItem is not null and has a valid idPlat
+                    if (item.getPlat() != null && item.getPlat().getIdPlat() > 0) {
+                        boolean itemInserted = insertCommandePlat(idCommande, item.getPlat().getIdPlat(), item.getQuantity());
+                        if (!itemInserted) {
+                            allItemsInserted = false;
+                            break; // Stop if any item insertion fails
+                        }
+                    } else {
+                        System.err.println("Error: CartItem contains a null Plat or invalid Plat ID.");
+                        allItemsInserted = false;
+                        break;
+                    }
+                }
+
+                if (allItemsInserted) {
+                    connection.commit(); // Commit transaction if all successful
+                    success = true;
+                    System.out.println("Order placed successfully with ID: " + idCommande);
+                } else {
+                    connection.rollback(); // Rollback if any item insertion failed
+                    System.err.println("Order placement failed: Failed to insert all items.");
+                }
+            } else {
+                connection.rollback(); // Rollback if main commande insertion failed
+                System.err.println("Order placement failed: Failed to insert main commande record.");
+            }
+
+        } catch (SQLException e) {
+            try {
+                if (connection != null) {
+                    connection.rollback(); // Rollback on any SQL exception
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            e.printStackTrace();
+            System.err.println("Order placement failed due to SQL exception.");
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.setAutoCommit(true); // Restore auto-commit mode
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+        return success;
+    }
+
+
+    // Obtenir une commande par ID (without plats - consider adding a method to get items too)
     public Commande getCommandeById(int id) {
         Commande commande = null;
+        // Corrected SQL: dateCommande column name
         String sql = "SELECT * FROM commande WHERE idCommande = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                commande = new Commande();
-                commande.setIdCommande(rs.getInt("idCommande"));
-                commande.setIdUtilisateur(rs.getInt("idUtilisateur"));
-                commande.setHorodatage(rs.getDate("horodatage"));
-                commande.setStatut(rs.getString("statut"));
-                commande.setMontantTotal(rs.getDouble("montantTotal"));
+            try(ResultSet rs = ps.executeQuery()) { // Use try-with-resources for ResultSet
+                if (rs.next()) {
+                    commande = new Commande();
+                    commande.setIdCommande(rs.getInt("idCommande"));
+                    commande.setIdUtilisateur(rs.getInt("idClient")); // Map idClient from DB to idUtilisateur in model
+                    commande.setHorodatage(rs.getTimestamp("dateCommande")); // Map dateCommande from DB to horodatage in model
+                    commande.setStatut(rs.getString("statut"));
+                    commande.setMontantTotal(rs.getDouble("montantTotal"));
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -61,7 +168,7 @@ public class CommandeDAO {
         return commande;
     }
 
-    // Obtenir toutes les commandes (sans les plats)
+    // Obtenir toutes les commandes (without plats - consider adding a method to get items too)
     public List<Commande> getAllCommandes() {
         List<Commande> commandes = new ArrayList<>();
         String sql = "SELECT * FROM commande";
@@ -71,8 +178,8 @@ public class CommandeDAO {
             while (rs.next()) {
                 Commande commande = new Commande();
                 commande.setIdCommande(rs.getInt("idCommande"));
-                commande.setIdUtilisateur(rs.getInt("idUtilisateur"));
-                commande.setHorodatage(rs.getDate("horodatage"));
+                commande.setIdUtilisateur(rs.getInt("idClient")); // Map idClient from DB to idUtilisateur in model
+                commande.setHorodatage(rs.getTimestamp("dateCommande")); // Map dateCommande from DB to horodatage in model
                 commande.setStatut(rs.getString("statut"));
                 commande.setMontantTotal(rs.getDouble("montantTotal"));
                 commandes.add(commande);
@@ -85,10 +192,11 @@ public class CommandeDAO {
 
     // Mettre à jour une commande
     public boolean updateCommande(Commande commande) {
-        String sql = "UPDATE commande SET idUtilisateur = ?, horodatage = ?, statut = ?, montantTotal = ? WHERE idCommande = ?";
+        // Corrected SQL: dateCommande column name
+        String sql = "UPDATE commande SET idClient = ?, dateCommande = ?, statut = ?, montantTotal = ? WHERE idCommande = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, commande.getIdUtilisateur());
-            ps.setDate(2, new java.sql.Date(commande.getHorodatage().getTime()));
+            ps.setInt(1, commande.getIdUtilisateur()); // Use getIdUtilisateur() from Commande model
+            ps.setTimestamp(2, new Timestamp(commande.getHorodatage().getTime())); // Use getHorodatage() from Commande model
             ps.setString(3, commande.getStatut());
             ps.setDouble(4, commande.getMontantTotal());
             ps.setInt(5, commande.getIdCommande());
@@ -114,26 +222,30 @@ public class CommandeDAO {
         }
     }
 
-    // Obtenir les commandes d’un utilisateur
+    // Obtenir les commandes d’un utilisateur (without plats - consider adding a method to get items too)
     public List<Commande> getCommandesByUtilisateurId(int idUtilisateur) {
         List<Commande> commandes = new ArrayList<>();
-        String sql = "SELECT * FROM commande WHERE idUtilisateur = ?";
+        // Corrected SQL: idClient and dateCommande column names
+        String sql = "SELECT * FROM commande WHERE idClient = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, idUtilisateur);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                Commande commande = new Commande();
-                commande.setIdCommande(rs.getInt("idCommande"));
-                commande.setIdUtilisateur(rs.getInt("idUtilisateur"));
-                commande.setHorodatage(rs.getDate("horodatage"));
-                commande.setStatut(rs.getString("statut"));
-                commande.setMontantTotal(rs.getDouble("montantTotal"));
-                commandes.add(commande);
+            try(ResultSet rs = ps.executeQuery()) { // Use try-with-resources for ResultSet
+                while (rs.next()) {
+                    Commande commande = new Commande();
+                    commande.setIdCommande(rs.getInt("idCommande"));
+                    commande.setIdUtilisateur(rs.getInt("idClient")); // Map idClient from DB to idUtilisateur in model
+                    commande.setHorodatage(rs.getTimestamp("dateCommande")); // Map dateCommande from DB to horodatage in model
+                    commande.setStatut(rs.getString("statut"));
+                    commande.setMontantTotal(rs.getDouble("montantTotal"));
+                    commandes.add(commande);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return commandes;
     }
+
+    // You might want methods to get the items for a specific order later
+    // public List<CartItem> getCommandeItems(int idCommande) { ... }
 }

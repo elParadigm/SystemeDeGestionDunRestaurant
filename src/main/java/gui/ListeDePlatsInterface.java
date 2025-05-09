@@ -5,11 +5,18 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.File; // Keep File import for file-based loading
-import javax.imageio.ImageIO; // Keep ImageIO import for image loading
+import java.io.File;
+import javax.imageio.ImageIO;
+import java.io.IOException; // Import IOException for image handling
+import java.io.ByteArrayInputStream; // Import ByteArrayInputStream
+import java.io.FileInputStream; // Import FileInputStream for reading image file
 
-import java.util.ArrayList; // To manage the list of dishes
-import java.util.List; // To manage the list of dishes
+import java.util.ArrayList;
+import java.util.List;
+
+// Import your Plat model class and PlatDAO class
+import model.Plat; // Assuming your Plat model is in a 'model' package
+import dao.PlatDAO; // Assuming your PlatDAO is in a 'dao' package
 
 // Assuming BackgroundPanel is in the same 'gui' package or accessible
 // import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
@@ -21,10 +28,12 @@ import gui.CuisinierInterface;
 class DishDetailsDialog extends JDialog {
     private JTextField nameField;
     private JTextArea descriptionArea;
-    private JTextField imagePathField;
+    private JTextField imagePathField; // Still used for selecting file path initially
     private JButton selectImageButton;
     private JButton saveButton;
     private JButton cancelButton;
+    private JTextField priceField; // Added field for price
+    private JTextField menuIdField; // Added field for menu ID
 
     private boolean isModification = false; // Flag to indicate if it's a modification
     private DishPanel dishPanelToModify; // Reference to the panel being modified
@@ -48,7 +57,7 @@ class DishDetailsDialog extends JDialog {
     }
 
     private void setupDialog() {
-        setSize(400, 350);
+        setSize(400, 450); // Increased dialog size to accommodate new fields
         setLocationRelativeTo(getParent());
         setLayout(new GridBagLayout());
         getContentPane().setBackground(new Color(250, 246, 233)); // Match color scheme
@@ -80,16 +89,37 @@ class DishDetailsDialog extends JDialog {
         JScrollPane descriptionScrollPane = new JScrollPane(descriptionArea);
         gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1.0; gbc.weighty = 1.0; gbc.fill = GridBagConstraints.BOTH; add(descriptionScrollPane, gbc);
 
+        // Price Label and Field
+        JLabel priceLabel = new JLabel("Prix:");
+        priceLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        priceLabel.setForeground(new Color(50, 50, 50));
+        gbc.gridx = 0; gbc.gridy = 2; gbc.anchor = GridBagConstraints.WEST; gbc.weighty = 0.0; add(priceLabel, gbc);
+
+        priceField = new JTextField(10);
+        priceField.setFont(new Font("Arial", Font.PLAIN, 14));
+        gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1.0; add(priceField, gbc);
+
+        // Menu ID Label and Field
+        JLabel menuIdLabel = new JLabel("ID Menu:");
+        menuIdLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        menuIdLabel.setForeground(new Color(50, 50, 50));
+        gbc.gridx = 0; gbc.gridy = 3; gbc.anchor = GridBagConstraints.WEST; gbc.weighty = 0.0; add(menuIdLabel, gbc);
+
+        menuIdField = new JTextField(10);
+        menuIdField.setFont(new Font("Arial", Font.PLAIN, 14));
+        gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 1.0; add(menuIdField, gbc);
+
+
         // Image Path Label and Field
         JLabel imagePathLabel = new JLabel("Chemin de l'image:");
         imagePathLabel.setFont(new Font("Arial", Font.BOLD, 14));
         imagePathLabel.setForeground(new Color(50, 50, 50));
-        gbc.gridx = 0; gbc.gridy = 2; gbc.anchor = GridBagConstraints.WEST; gbc.weighty = 0.0; gbc.fill = GridBagConstraints.NONE; add(imagePathLabel, gbc);
+        gbc.gridx = 0; gbc.gridy = 4; gbc.anchor = GridBagConstraints.WEST; gbc.weighty = 0.0; gbc.fill = GridBagConstraints.NONE; add(imagePathLabel, gbc);
 
         imagePathField = new JTextField(20);
         imagePathField.setFont(new Font("Arial", Font.PLAIN, 14));
         imagePathField.setEditable(false); // Make it non-editable, only selectable via button
-        gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL; add(imagePathField, gbc);
+        gbc.gridx = 1; gbc.gridy = 4; gbc.weightx = 1.0; gbc.fill = GridBagConstraints.HORIZONTAL; add(imagePathField, gbc);
 
         // Select Image Button
         selectImageButton = new JButton("Choisir une image");
@@ -100,7 +130,7 @@ class DishDetailsDialog extends JDialog {
         selectImageButton.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         selectImageButton.setOpaque(true);
         selectImageButton.setBorderPainted(false);
-        gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 0.0; gbc.fill = GridBagConstraints.NONE; gbc.anchor = GridBagConstraints.EAST; add(selectImageButton, gbc);
+        gbc.gridx = 1; gbc.gridy = 5; gbc.weightx = 0.0; gbc.fill = GridBagConstraints.NONE; gbc.anchor = GridBagConstraints.EAST; add(selectImageButton, gbc);
 
         selectImageButton.addActionListener(new ActionListener() {
             @Override
@@ -121,7 +151,7 @@ class DishDetailsDialog extends JDialog {
         // Button Panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(new Color(250, 246, 233)); // Match color scheme
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.EAST; gbc.fill = GridBagConstraints.NONE; add(buttonPanel, gbc);
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.EAST; gbc.fill = GridBagConstraints.NONE; add(buttonPanel, gbc);
 
         // Save Button
         saveButton = new JButton(isModification ? "Sauvegarder les modifications" : "Ajouter le plat");
@@ -137,24 +167,89 @@ class DishDetailsDialog extends JDialog {
             public void actionPerformed(ActionEvent e) {
                 String name = nameField.getText().trim();
                 String description = descriptionArea.getText().trim();
-                String imagePath = imagePathField.getText().trim();
+                String imagePath = imagePathField.getText().trim(); // Get the selected image path
+                String priceText = priceField.getText().trim(); // Get price text
+                String menuIdText = menuIdField.getText().trim(); // Get menu ID text
 
-                if (name.isEmpty() || description.isEmpty() || imagePath.isEmpty()) {
+                if (name.isEmpty() || description.isEmpty() || imagePath.isEmpty() || priceText.isEmpty() || menuIdText.isEmpty()) {
                     JOptionPane.showMessageDialog(DishDetailsDialog.this, "Veuillez remplir tous les champs.", "Champs manquants", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
-                if (isModification) {
-                    // Update the existing dish panel
-                    if (dishPanelToModify != null) {
-                        dishPanelToModify.updateDishDetails(imagePath, name, description);
-                    }
-                } else {
-                    // Add a new dish panel by calling the public method in the parent interface
-                    parentInterface.addDish(new DishPanel(imagePath, name, description, parentInterface)); // Pass parent interface reference
+                double price;
+                int menuId;
+                try {
+                    price = Double.parseDouble(priceText);
+                    menuId = Integer.parseInt(menuIdText);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(DishDetailsDialog.this, "Le prix et l'ID du menu doivent être des nombres valides.", "Erreur de format", JOptionPane.WARNING_MESSAGE);
+                    return;
                 }
 
-                dispose(); // Close the dialog
+
+                // --- DATABASE INTEGRATION: Save/Update Plat ---
+                PlatDAO platDAO = new PlatDAO(); // Assuming you have a PlatDAO class
+
+                try {
+                    // Read image data from the selected file path
+                    File imageFile = new File(imagePath);
+                    byte[] imageData = new byte[(int) imageFile.length()];
+                    try (FileInputStream fis = new FileInputStream(imageFile)) {
+                        fis.read(imageData);
+                    } // fis is closed automatically by try-with-resources
+
+                    if (isModification) {
+                        // Get the Plat object from the panel being modified
+                        Plat platToUpdate = dishPanelToModify.getPlat(); // Assuming DishPanel stores the Plat object
+                        if (platToUpdate != null) {
+                            // Update the Plat object with new details
+                            platToUpdate.setNom(name);
+                            platToUpdate.setDescription(description);
+                            platToUpdate.setPrix(price); // Set updated price
+                            platToUpdate.setIdMenu(menuId); // Set updated menu ID
+                            platToUpdate.setImage(imageData); // Set the new image data
+
+                            // Call DAO method to update the plat in the database
+                            boolean success = platDAO.updatePlat(platToUpdate); // Assuming updatePlat takes a Plat object
+                            if (success) {
+                                // Update the GUI panel with the new details from the updated Plat object
+                                dishPanelToModify.updateDishDetails(platToUpdate); // Update panel with the Plat object
+                                JOptionPane.showMessageDialog(DishDetailsDialog.this, "Plat modifié avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
+                                dispose(); // Close the dialog on success
+                            } else {
+                                JOptionPane.showMessageDialog(DishDetailsDialog.this, "Échec de la modification du plat dans la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    } else {
+                        // Create a new Plat object
+                        Plat newPlat = new Plat(); // Assuming your Plat model has a no-arg constructor
+                        newPlat.setNom(name);
+                        newPlat.setDescription(description);
+                        newPlat.setPrix(price); // Set price
+                        newPlat.setIdMenu(menuId); // Set menu ID
+                        newPlat.setImage(imageData); // Set the image data
+
+
+                        // Call DAO method to add the new plat to the database
+                        // Assuming addPlat returns the generated ID or a boolean indicating success
+                        int generatedId = platDAO.addPlat(newPlat); // Assuming addPlat returns the generated ID or -1 on failure
+                        if (generatedId != -1) {
+                            newPlat.setIdPlat(generatedId); // Set the generated ID on the Plat object
+                            // Add a new dish panel to the GUI
+                            parentInterface.addDish(new DishPanel(newPlat, parentInterface)); // Pass the Plat object and parent interface
+                            JOptionPane.showMessageDialog(DishDetailsDialog.this, "Plat ajouté avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
+                            dispose(); // Close the dialog on success
+                        } else {
+                            JOptionPane.showMessageDialog(DishDetailsDialog.this, "Échec de l'ajout du plat à la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(DishDetailsDialog.this, "Erreur de lecture de l'image: " + ex.getMessage(), "Erreur d'image", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                } catch (Exception ex) { // Catch general exceptions from DAO operations
+                    JOptionPane.showMessageDialog(DishDetailsDialog.this, "Erreur lors de l'opération sur le plat: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
             }
         });
         buttonPanel.add(saveButton);
@@ -180,9 +275,17 @@ class DishDetailsDialog extends JDialog {
     // Populate fields when modifying an existing dish
     private void populateFields() {
         if (dishPanelToModify != null) {
-            nameField.setText(dishPanelToModify.getDishName());
-            descriptionArea.setText(dishPanelToModify.getDishDescription());
-            imagePathField.setText(dishPanelToModify.getImagePath()); // Assuming DishPanel stores image path
+            // Get the Plat object from the panel
+            Plat plat = dishPanelToModify.getPlat(); // Assuming DishPanel stores the Plat object
+            if (plat != null) {
+                nameField.setText(plat.getNom());
+                descriptionArea.setText(plat.getDescription());
+                priceField.setText(String.valueOf(plat.getPrix())); // Populate price
+                menuIdField.setText(String.valueOf(plat.getIdMenu())); // Populate menu ID
+                // We don't have the original file path when loading from DB, so leave the imagePathField empty.
+                // The user can select a new image if they want to change it.
+                imagePathField.setText("");
+            }
         }
     }
 }
@@ -195,20 +298,15 @@ class DishPanel extends JPanel {
     private JLabel descriptionLabel;
     private JButton removeButton;
     private JButton modifyButton; // Added Modify button
-    // Changed parentPanel to parentInterface reference
     private ListeDePlatsInterface parentInterface;
 
-    // Store dish details locally for modification
-    private String currentImagePath;
-    private String currentDishName;
-    private String currentDishDescription;
+    // Store the associated Plat object
+    private Plat plat;
 
-    // Updated constructor to accept ListeDePlatsInterface
-    public DishPanel(String imageName, String name, String description, ListeDePlatsInterface parentInterface) {
+    // Updated constructor to accept a Plat object and ListeDePlatsInterface
+    public DishPanel(Plat plat, ListeDePlatsInterface parentInterface) {
+        this.plat = plat; // Store the Plat object
         this.parentInterface = parentInterface;
-        this.currentImagePath = imageName; // Store initial values
-        this.currentDishName = name;
-        this.currentDishDescription = description;
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS)); // Arrange components vertically
         setBackground(new Color(250, 246, 233)); // Use a color similar to the panel background
@@ -223,17 +321,17 @@ class DishPanel extends JPanel {
 
         // Image Label
         imageLabel = new JLabel();
-        updateImage(currentImagePath); // Load and set the initial image
+        updateImage(plat.getImage()); // Load and set the image from Plat object's byte array
         imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
 
         // Name Label
-        nameLabel = new JLabel(currentDishName);
+        nameLabel = new JLabel(plat.getNom());
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
         nameLabel.setForeground(new Color(50, 50, 50));
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
 
         // Description Label
-        descriptionLabel = new JLabel("<html><body style='text-align:center;'>" + currentDishDescription + "</body></html>"); // Use HTML for centering text
+        descriptionLabel = new JLabel("<html><body style='text-align:center;'>" + plat.getDescription() + "</body></html>"); // Use HTML for centering text
         descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         descriptionLabel.setForeground(new Color(80, 80, 80));
         descriptionLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
@@ -254,7 +352,7 @@ class DishPanel extends JPanel {
         modifyButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Open the modification dialog, passing the parent interface
+                // Open the modification dialog, passing this DishPanel and the parent interface
                 JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(DishPanel.this);
                 if (parentFrame instanceof ListeDePlatsInterface) {
                     DishDetailsDialog dialog = new DishDetailsDialog(parentFrame, DishPanel.this, (ListeDePlatsInterface) parentFrame);
@@ -277,9 +375,24 @@ class DishPanel extends JPanel {
         removeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Action to remove this dish panel by calling a method in the parent interface
-                if (parentInterface != null) {
-                    parentInterface.removeDishPanel(DishPanel.this); // Call remove method in parent interface
+                // --- DATABASE INTEGRATION: Delete Plat ---
+                int confirm = JOptionPane.showConfirmDialog(parentInterface,
+                        "Êtes-vous sûr de vouloir supprimer le plat '" + plat.getNom() + "'?",
+                        "Confirmer la suppression",
+                        JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    PlatDAO platDAO = new PlatDAO(); // Assuming you have a PlatDAO class
+                    boolean success = platDAO.deletePlat(plat.getIdPlat()); // Assuming deletePlat takes the plat ID
+
+                    if (success) {
+                        // Action to remove this dish panel from the GUI
+                        if (parentInterface != null) {
+                            parentInterface.removeDishPanel(DishPanel.this); // Call remove method in parent interface
+                            JOptionPane.showMessageDialog(parentInterface, "Plat supprimé avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(parentInterface, "Échec de la suppression du plat dans la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             }
         });
@@ -298,53 +411,70 @@ class DishPanel extends JPanel {
         add(Box.createRigidArea(new Dimension(0, 5))); // Spacer
     }
 
-    // Method to update the dish details displayed in the panel
-    public void updateDishDetails(String imageName, String name, String description) {
-        this.currentImagePath = imageName;
-        this.currentDishName = name;
-        this.currentDishDescription = description;
+    // Method to update the dish details displayed in the panel from a Plat object
+    public void updateDishDetails(Plat updatedPlat) {
+        this.plat = updatedPlat; // Update the stored Plat object
 
-        updateImage(currentImagePath); // Update the image
-        nameLabel.setText(currentDishName); // Update name label
-        descriptionLabel.setText("<html><body style='text-align:center;'>" + currentDishDescription + "</body></html>"); // Update description label
+        updateImage(this.plat.getImage()); // Update the image from the updated Plat object's byte array
+        nameLabel.setText(this.plat.getNom()); // Update name label
+        descriptionLabel.setText("<html><body style='text-align:center;'>" + this.plat.getDescription() + "</body></html>"); // Update description label
 
         revalidate(); // Re-layout the panel
         repaint(); // Repaint the panel
     }
 
-    // Helper method to load and scale the image
-    private void updateImage(String imageName) {
+    // Helper method to load and scale the image from byte array
+    private void updateImage(byte[] imageData) {
         ImageIcon dishIcon = null;
-        try {
-            // Load from a file:
-            // IMPORTANT: Update this path to where your dish images are located
-            Image img = ImageIO.read(new File(imageName)); // Load image from file
-            // Scaling to fit the image within the panel
-            Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH); // Scale image to 100x100
-            dishIcon = new ImageIcon(scaledImg); // Use the scaled image
+        if (imageData != null && imageData.length > 0) { // Check if image data is not null and not empty
+            try {
+                // Load image from byte array
+                BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageData));
+                if (originalImage != null) {
+                    // Scaling to fit the image within the panel
+                    Image scaledImg = originalImage.getScaledInstance(100, 100, Image.SCALE_SMOOTH); // Scale image to 100x100
+                    dishIcon = new ImageIcon(scaledImg); // Use the scaled image
+                } else {
+                    System.err.println("Could not read image from byte data.");
+                }
 
-        } catch (Exception e) {
-            System.err.println("Error loading dish image: " + e.getMessage());
-            // Fallback to text if loading fails
-            imageLabel.setText("Image");
+            } catch (IOException e) {
+                System.err.println("Error loading dish image from byte data: " + e.getMessage());
+                // Fallback to text if loading fails
+                imageLabel.setText("Image Load Error"); // More specific error message
+                imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                dishIcon = null; // Ensure icon is null on failure
+            }
+        } else {
+            // Fallback if image data is null or empty
+            imageLabel.setText("No Image");
             imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            dishIcon = null; // Ensure icon is null on failure
+            dishIcon = null;
         }
+
 
         imageLabel.setIcon(dishIcon); // Set the icon (or null if loading failed)
     }
 
-    // Getters for current dish details (used by the modification dialog)
+    // Getter for the associated Plat object
+    public Plat getPlat() {
+        return plat;
+    }
+
+    // Getters for current dish details (used by the modification dialog) - kept for compatibility
+    // These now retrieve data from the stored Plat object
     public String getImagePath() {
-        return currentImagePath;
+        // We don't store the file path in the Plat object when loaded from DB.
+        // This getter is less relevant now. Returning an empty string or null.
+        return "";
     }
 
     public String getDishName() {
-        return currentDishName;
+        return plat.getNom();
     }
 
     public String getDishDescription() {
-        return currentDishDescription;
+        return plat.getDescription();
     }
 }
 
@@ -537,32 +667,42 @@ public class ListeDePlatsInterface extends JFrame { // Changed class name
         // Add the main background panel to the JFrame
         add(mainPanel);
 
-        // Example: Add some initial placeholder dishes
-        // IMPORTANT: Update the image paths for these placeholder dishes
-        addDish(new DishPanel("row-1-column-1.png", "Pizza Margherita", "Classic pizza with tomato and mozzarella", this)); // Pass parent interface
-        addDish(new DishPanel("row-1-column-2.png", "Spaghetti Bolognese", "Pasta with meat sauce", this)); // Pass parent interface
-        addDish(new DishPanel("row-1-column-3.png", "Salade Niçoise", "Salad with tuna, olives, and vegetables", this)); // Pass parent interface
-        addDish(new DishPanel("row-1-column-4.png", "Pizza Margherita", "Classic pizza with tomato and mozzarella", this)); // Pass parent interface
-        addDish(new DishPanel("row-2-column-1.png", "Spaghetti Bolognese", "Pasta with meat sauce", this)); // Pass parent interface
-        addDish(new DishPanel("row-2-column-2.png", "Salade Niçoise", "Salad with tuna, olives, and vegetables", this)); // Pass parent interface
-        addDish(new DishPanel("row-2-column-3.png", "Pizza Margherita", "Classic pizza with tomato and mozzarella", this)); // Pass parent interface
-        addDish(new DishPanel("row-2-column-4.png", "Spaghetti Bolognese", "Pasta with meat sauce", this)); // Pass parent interface
-        addDish(new DishPanel("row-3-column-1.png", "Salade Niçoise", "Salad with tuna, olives, and vegetables", this)); // Pass parent interface
-        addDish(new DishPanel("row-3-column-2.png", "Nouveau Plat", "Description du nouveau plat", this)); // Pass parent interface
-        addDish(new DishPanel("row-3-column-3.png", "Nouveau Plat", "Description du nouveau plat", this)); // Pass parent interface
-        addDish(new DishPanel("row-3-column-4.png", "Nouveau Plat", "Description du nouveau plat", this)); // Pass parent interface
-
-
+        // --- DATABASE INTEGRATION: Load Plats on startup ---
+        loadPlatsFromDatabase(); // Call method to load plats from DB
     }
 
-    // Method to add a dish panel to the container (called by the dialog)
+    // Method to load plats from the database and display them
+    private void loadPlatsFromDatabase() {
+        dishesContainerPanel.removeAll(); // Clear existing panels
+        PlatDAO platDAO = new PlatDAO(); // Assuming you have a PlatDAO class
+        List<Plat> plats = platDAO.getAllPlats(); // Assuming getAllPlats returns a List<Plat>
+
+        if (plats != null) {
+            for (Plat plat : plats) {
+                // Create a DishPanel for each Plat object and add it to the container
+                dishesContainerPanel.add(new DishPanel(plat, this)); // Pass the Plat object and parent interface
+            }
+        } else {
+            // Handle case where no plats are loaded (e.g., display a message)
+            JLabel noDishesLabel = new JLabel("Aucun plat trouvé dans la base de données.");
+            noDishesLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+            noDishesLabel.setForeground(COLOR_TEXT_DARK);
+            dishesContainerPanel.add(noDishesLabel);
+        }
+
+        dishesContainerPanel.revalidate(); // Re-layout the container
+        dishesContainerPanel.repaint(); // Repaint the container
+    }
+
+
+    // Method to add a dish panel to the container (called by the dialog after DB insertion)
     public void addDish(DishPanel dishPanel) { // Made public
         dishesContainerPanel.add(dishPanel);
         dishesContainerPanel.revalidate(); // Re-layout the container
         dishesContainerPanel.repaint(); // Repaint the container
     }
 
-    // Method to remove a dish panel from the container (called by the DishPanel)
+    // Method to remove a dish panel from the container (called by the DishPanel after DB deletion)
     public void removeDishPanel(DishPanel dishPanel) {
         dishesContainerPanel.remove(dishPanel);
         dishesContainerPanel.revalidate();

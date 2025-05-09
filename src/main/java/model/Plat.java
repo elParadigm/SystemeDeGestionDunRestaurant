@@ -1,21 +1,38 @@
 package model;
 
-public class Plat {
-    public int  idPlat;
-    public int  idMenu;
-    public String  nom;
-    public double prix;
-    public String  description;
+// Import necessary classes for byte array image data
+import java.io.Serializable; // Often useful for model classes
 
-    public Plat(String description, int idMenu, int idPlat, String nom, double prix) {
-        this.description = description;
-        this.idMenu = idMenu;
+public class Plat implements Serializable { // Implement Serializable if you plan to pass Plat objects
+    private int  idPlat;
+    private int  idMenu;
+    private String  nom;
+    private double prix;
+    private String  description;
+    private byte[] image; // Changed from File to byte[]
+
+    // Constructor with all fields (including byte[])
+    public Plat(int idPlat, int idMenu, String nom, double prix, String description, byte[] image) {
         this.idPlat = idPlat;
+        this.idMenu = idMenu;
         this.nom = nom;
         this.prix = prix;
+        this.description = description;
+        this.image = image;
     }
-    public Plat(){
 
+    // No-arg constructor
+    public Plat(){
+    }
+
+    // Getter for image (returns byte[])
+    public byte[] getImage() {
+        return image;
+    }
+
+    // Setter for image (accepts byte[])
+    public void setImage(byte[] image) {
+        this.image = image;
     }
 
     public String getDescription() {
