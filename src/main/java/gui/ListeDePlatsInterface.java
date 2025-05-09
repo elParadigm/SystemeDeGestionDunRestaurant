@@ -493,6 +493,7 @@ public class ListeDePlatsInterface extends JFrame { // Changed class name
     private JPanel dishesContainerPanel; // Panel to hold the grid of dishes
 
     // Constructor for the ListeDePlatsInterface class
+    /// up
     public ListeDePlatsInterface() {
         // Set up the main window properties
         setTitle("Liste de Plats"); // Window title
