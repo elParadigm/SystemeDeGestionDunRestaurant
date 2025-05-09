@@ -16,6 +16,11 @@ import controller.UtilisateurController; // Import UtilisateurController
 import gui.Signup;
 import model.Utilisateur; // Import Utilisateur model to get user details
 
+// Import CuisinierInterface and ServeuseInterface
+// Make sure these classes exist in your gui package and are correctly named
+import gui.CuisinierInterface;
+import gui.ServeuseInterface;
+
 
 public class Login extends JFrame {
 
@@ -213,11 +218,11 @@ public class Login extends JFrame {
                         // Pass the client ID to the ClientMenuInterface constructor
                         new ClientMenuInterface(userId).setVisible(true);
                     } else if ("cuisinier".equalsIgnoreCase(role)) {
-                        // new CuisinierInterface().setVisible(true); // Uncomment and implement CuisinierInterface
-                        JOptionPane.showMessageDialog(Login.this, "Interface Cuisinier non implémentée.");
+                        // Open CuisinierInterface
+                        new CuisinierInterface().setVisible(true);
                     } else if ("serveuse".equalsIgnoreCase(role)) {
-                        // new ServeuseInterface().setVisible(true); // Uncomment and implement ServeuseInterface
-                        JOptionPane.showMessageDialog(Login.this, "Interface Serveuse non implémentée.");
+                        // Open ServeuseInterface
+                        new ServeuseInterface(userId).setVisible(true);
                     } else {
                         JOptionPane.showMessageDialog(Login.this, "Rôle utilisateur inconnu !");
                     }

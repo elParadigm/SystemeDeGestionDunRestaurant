@@ -1,34 +1,33 @@
 package gui; // Declare the package
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.io.File; // Keep File import for file-based loading
-import javax.imageio.ImageIO; // Keep ImageIO import for image loading
+import java.io.File;
+import javax.imageio.ImageIO;
 
-import java.util.ArrayList; // To manage the list of orders
-import java.util.List; // To manage the list of orders
-import java.util.stream.Collectors; // For filtering orders
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+// Import necessary DAO and Model classes
+import dao.CommandeDAO;
+import model.Commande;
 
 // Assuming BackgroundPanel is in the same 'gui' package or accessible
 // import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
 
 // Import the ServeuseInterface class to allow returning
-import gui.ServeuseInterface;
-// Import OrderStatus and Order classes directly from the gui package
-import gui.OrderStatus;
-import gui.Order;
 
 
 // Custom JPanel for displaying a single Order item in the waitress interface
+// Modified to accept a model.Commande object and remove table number display
 class ServeuseOrderPanel extends JPanel {
     private JLabel orderInfoLabel;
     private JLabel statusLabel;
-    private Order order; // The order this panel represents
+    private Commande order; // The Commande object this panel represents
 
-    public ServeuseOrderPanel(Order order) {
+    public ServeuseOrderPanel(Commande order ) {
         this.order = order;
 
         setLayout(new GridBagLayout()); // Use GridBagLayout for flexible layout
@@ -46,10 +45,13 @@ class ServeuseOrderPanel extends JPanel {
         gbc.insets = new Insets(5, 5, 5, 5); // Padding around components
         gbc.anchor = GridBagConstraints.WEST; // Align components to the west
 
-        // Order Info Label (Displays ID, Table, and Items)
-        StringBuilder infoText = new StringBuilder("<html><b>Commande #" + order.getOrderId() + "</b> (Table: " + order.getTableNumber() + ")<br>");
-        for (String item : order.getItems()) {
-            infoText.append("- ").append(item).append("<br>");
+        // Order Info Label (Displays ID and Items - Removed Table Number)
+        StringBuilder infoText = new StringBuilder("<html><b>Commande #" + order.getIdCommande() + "</b><br>");
+        // Assuming CartItem has getName() and getQuantity()
+        if (order.getItems() != null) {
+            for (CartItem item : order.getItems()) {
+                infoText.append("- ").append(item.getName()).append(" x ").append(item.getQuantity()).append("<br>");
+            }
         }
         infoText.append("</html>");
         orderInfoLabel = new JLabel(infoText.toString());
@@ -62,9 +64,11 @@ class ServeuseOrderPanel extends JPanel {
         add(orderInfoLabel, gbc);
 
         // Status Label
-        statusLabel = new JLabel("Statut: " + order.getStatus().toString()); // Display current status
+        // Using getStatut() from Commande model and converting to OrderStatus enum for color
+        OrderStatus currentStatus = OrderStatus.fromString(order.getStatut());
+        statusLabel = new JLabel("Statut: " + currentStatus.toString()); // Display current status
         statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        statusLabel.setForeground(getStatusColor(order.getStatus())); // Set color based on status
+        statusLabel.setForeground(getStatusColor(currentStatus)); // Set color based on status
         gbc.gridx = 0; // Column 0
         gbc.gridy = 1; // Row 1
         gbc.weightx = 0.0; // Do not take extra horizontal space
@@ -96,19 +100,22 @@ class ServeuseOrderPanel extends JPanel {
     }
 
     // Method to update the status display (if order status changes externally)
+    // Modified to use the Commande object's status
     public void updateStatusDisplay() {
-        statusLabel.setText("Statut: " + order.getStatus().toString());
-        statusLabel.setForeground(getStatusColor(order.getStatus()));
+        OrderStatus currentStatus = OrderStatus.fromString(order.getStatut());
+        statusLabel.setText("Statut: " + currentStatus.toString());
+        statusLabel.setForeground(getStatusColor(currentStatus));
         revalidate();
         repaint();
     }
 
-    public Order getOrder() {
+    public Commande getOrder() {
         return order;
     }
 }
 
 // Panel to display a list of orders
+// Modified to work with List<Commande>
 class OrderListPanel extends JPanel {
     private JPanel listContainer; // Panel to hold the order panels
     private JScrollPane scrollPane;
@@ -131,11 +138,14 @@ class OrderListPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    public void displayOrders(List<Order> orders) {
+    // Modified to accept List<Commande>
+    public void displayOrders(List<Commande> orders) {
         listContainer.removeAll(); // Clear previous orders
-        for (Order order : orders) {
-            listContainer.add(new ServeuseOrderPanel(order)); // Add a panel for each order
-            listContainer.add(Box.createRigidArea(new Dimension(0, 10))); // Add spacing between orders
+        if (orders != null) {
+            for (Commande order : orders) {
+                listContainer.add(new ServeuseOrderPanel(order)); // Add a panel for each order
+                listContainer.add(Box.createRigidArea(new Dimension(0, 10))); // Add spacing between orders
+            }
         }
         listContainer.revalidate();
         listContainer.repaint();
@@ -143,13 +153,14 @@ class OrderListPanel extends JPanel {
 }
 
 // Panel to generate and display invoices
+// Modified to work with List<Commande> and remove table number from invoice
 class InvoicePanel extends JPanel {
     private JTextArea invoiceArea;
     private JButton generateButton;
-    private JComboBox<Order> finishedOrdersComboBox;
-    private List<Order> allOrders; // Reference to the list of all orders
+    private JComboBox<Commande> finishedOrdersComboBox; // ComboBox for Commande objects
+    private List<Commande> allOrders; // Reference to the list of all orders (Commande objects)
 
-    public InvoicePanel(List<Order> allOrders) {
+    public InvoicePanel(List<Commande> allOrders) {
         this.allOrders = allOrders;
         setLayout(new BorderLayout());
         setOpaque(false); // Make panel transparent
@@ -161,7 +172,7 @@ class InvoicePanel extends JPanel {
 
         controlPanel.add(new JLabel("Sélectionner une commande terminée:"));
 
-        // ComboBox for finished orders
+        // ComboBox for finished orders - now holds Commande objects
         finishedOrdersComboBox = new JComboBox<>();
         finishedOrdersComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
         controlPanel.add(finishedOrdersComboBox);
@@ -178,7 +189,7 @@ class InvoicePanel extends JPanel {
         generateButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Order selectedOrder = (Order) finishedOrdersComboBox.getSelectedItem();
+                Commande selectedOrder = (Commande) finishedOrdersComboBox.getSelectedItem();
                 if (selectedOrder != null) {
                     generateInvoice(selectedOrder);
                 } else {
@@ -204,35 +215,37 @@ class InvoicePanel extends JPanel {
     }
 
     // Method to update the combo box with finished orders
+    // Modified to filter Commande objects based on status
     public void updateFinishedOrdersComboBox() {
         finishedOrdersComboBox.removeAllItems();
-        List<Order> finishedOrders = allOrders.stream()
-                .filter(order -> order.getStatus() == OrderStatus.FINISHED)
-                .collect(Collectors.toList());
-        for (Order order : finishedOrders) {
-            finishedOrdersComboBox.addItem(order);
+        if (allOrders != null) {
+            List<Commande> finishedOrders = allOrders.stream()
+                    .filter(order -> "terminee".equalsIgnoreCase(order.getStatut())) // Filter by status string
+                    .collect(Collectors.toList());
+            for (Commande order : finishedOrders) {
+                finishedOrdersComboBox.addItem(order);
+            }
         }
     }
 
-    // Method to generate and display the invoice text
-    private void generateInvoice(Order order) {
+    // Method to generate and display the invoice text - Removed Table Number
+    private void generateInvoice(Commande order) {
         StringBuilder invoiceText = new StringBuilder();
         invoiceText.append("----------------------------------------\n");
-        invoiceText.append("           FACTURE - COMMANDE #").append(order.getOrderId()).append("\n");
+        invoiceText.append("           FACTURE - COMMANDE #").append(order.getIdCommande()).append("\n");
         invoiceText.append("----------------------------------------\n");
-        invoiceText.append("Table: ").append(order.getTableNumber()).append("\n");
-        invoiceText.append("Date: ").append(new java.util.Date()).append("\n"); // Simple date
+        // Removed: invoiceText.append("Table: ").append(order.getTableNumber()).append("\n");
+        invoiceText.append("Date: ").append(order.getHorodatage()).append("\n"); // Use order timestamp
         invoiceText.append("----------------------------------------\n");
         invoiceText.append("Articles:\n");
         double total = 0;
-        // In a real app, you'd get price from dish data, not just item name
-        // For this example, let's assume a placeholder price or retrieve from a map
-        double placeholderPricePerItem = 5.0; // Example placeholder price
-        for (String item : order.getItems()) {
-            // Simple price calculation for demonstration
-            double itemPrice = placeholderPricePerItem; // Replace with actual price lookup
-            invoiceText.append(String.format("- %-25s %.2f €\n", item, itemPrice));
-            total += itemPrice;
+        if (order.getItems() != null) {
+            for (CartItem item : order.getItems()) {
+                // Use item name and quantity from CartItem, and price from Plat within CartItem
+                double itemPrice = item.getPrice(); // Assuming CartItem's getPrice() is correct
+                invoiceText.append(String.format("- %-25s x %d %.2f €\n", item.getName(), item.getQuantity(), itemPrice * item.getQuantity()));
+                total += itemPrice * item.getQuantity();
+            }
         }
         invoiceText.append("----------------------------------------\n");
         invoiceText.append(String.format("TOTAL: %30.2f €\n", total));
@@ -259,28 +272,17 @@ public class ServeuseOrderInterface extends JFrame { // Changed class name
     private OrderListPanel processingOrdersPanel;
     private InvoicePanel invoicePanel;
 
-    private List<Order> allOrders; // List to hold all orders (for demonstration)
+    private List<Commande> allOrders; // List to hold all orders (Commande objects)
+    private CommandeDAO commandeDAO; // DAO to fetch orders
+
 
     // Constructor for the ServeuseOrderInterface class
-    public ServeuseOrderInterface() { // Changed constructor name
-        // Initialize the orders list with some placeholder data
-        allOrders = new ArrayList<>();
-        allOrders.add(new Order(1, List.of("Pizza Margherita", "Coca-Cola"), "Table 5"));
-        allOrders.add(new Order(2, List.of("Spaghetti Bolognese", "Salade Niçoise"), "Table 2"));
-        allOrders.add(new Order(3, List.of("Steak Frites"), "Table 8"));
-        allOrders.add(new Order(4, List.of("Soupe du jour", "Pain"), "Table 1"));
-        allOrders.add(new Order(5, List.of("Pizza Margherita", "Pizza Margherita"), "Table 5"));
-        allOrders.add(new Order(6, List.of("Spaghetti Carbonara"), "Table 3"));
-        allOrders.add(new Order(7, List.of("Salade César"), "Table 7"));
-        allOrders.add(new Order(8, List.of("Burger Classique", "Frites"), "Table 4"));
-        allOrders.add(new Order(9, List.of("Poisson Grillé", "Légumes"), "Table 6"));
-        allOrders.add(new Order(10, List.of("Tiramisu", "Café"), "Table 2"));
+    public ServeuseOrderInterface(int serveuseId) { // Changed constructor name
+        // Initialize the DAO
+        commandeDAO = new CommandeDAO();
 
-        // Simulate some orders being processed or finished
-        allOrders.get(1).setStatus(OrderStatus.PREPARING);
-        allOrders.get(3).setStatus(OrderStatus.PREPARING);
-        allOrders.get(5).setStatus(OrderStatus.FINISHED);
-        allOrders.get(7).setStatus(OrderStatus.FINISHED);
+        // Initialize the orders list (will be populated from DB)
+        allOrders = new ArrayList<>();
 
 
         // Set up the main window properties
@@ -330,7 +332,7 @@ public class ServeuseOrderInterface extends JFrame { // Changed class name
                     ServeuseOrderInterface.this.dispose(); // Close current window
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            new ServeuseInterface().setVisible(true); // Return to ServeuseInterface
+                            new ServeuseInterface(serveuseId).setVisible(true); // Return to ServeuseInterface
                         }
                     });
                 }
@@ -356,7 +358,7 @@ public class ServeuseOrderInterface extends JFrame { // Changed class name
                     ServeuseOrderInterface.this.dispose();
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            new ServeuseInterface().setVisible(true);
+                            new ServeuseInterface(serveuseId).setVisible(true);
                         }
                     });
                 }
@@ -413,10 +415,11 @@ public class ServeuseOrderInterface extends JFrame { // Changed class name
         contentAreaPanel.setOpaque(false); // Make transparent
         contentAreaPanel.setBorder(BorderFactory.createLineBorder(COLOR_PANEL_BORDER, 1)); // Add a border
 
-        // Initialize the view panels
+        // Initialize the view panels - Pass the list of all orders to InvoicePanel
         receivedOrdersPanel = new OrderListPanel();
         processingOrdersPanel = new OrderListPanel();
-        invoicePanel = new InvoicePanel(allOrders); // Pass the list of all orders
+        invoicePanel = new InvoicePanel(allOrders); // Pass the reference to allOrders list
+
 
         // Add panels to the CardLayout
         contentAreaPanel.add(receivedOrdersPanel, "received");
@@ -437,8 +440,9 @@ public class ServeuseOrderInterface extends JFrame { // Changed class name
         // Add the main background panel to the JFrame
         add(mainPanel);
 
-        // Show the default view (e.g., received orders)
-        showView("received");
+        // Load orders from the database and show the default view
+        loadOrdersFromDatabase();
+        showView("received"); // Show the received orders view after loading
     }
 
     // Helper method to style buttons
@@ -459,41 +463,39 @@ public class ServeuseOrderInterface extends JFrame { // Changed class name
 
         // Update the content of the visible panel
         if ("received".equals(viewName)) {
-            List<Order> receivedOrders = allOrders.stream()
-                    .filter(order -> order.getStatus() == OrderStatus.PENDING)
+            // Filter orders with "En attente" status
+            List<Commande> receivedOrders = allOrders.stream()
+                    .filter(order -> "en_attente".equalsIgnoreCase(order.getStatut())) // Filter by status string
                     .collect(Collectors.toList());
             receivedOrdersPanel.displayOrders(receivedOrders);
         } else if ("processing".equals(viewName)) {
-            List<Order> processingOrders = allOrders.stream()
-                    .filter(order -> order.getStatus() == OrderStatus.PREPARING)
+            // Filter orders with "En préparation" status
+            List<Commande> processingOrders = allOrders.stream()
+                    .filter(order -> "en_traitement".equalsIgnoreCase(order.getStatut())) // Filter by status string
                     .collect(Collectors.toList());
             processingOrdersPanel.displayOrders(processingOrders);
         } else if ("invoice".equals(viewName)) {
+            // The InvoicePanel already has a reference to allOrders and filters internally
             invoicePanel.updateFinishedOrdersComboBox(); // Refresh the list of finished orders
+        }
+    }
+
+    // Method to load orders from the database and populate the allOrders list
+    private void loadOrdersFromDatabase() {
+        allOrders.clear(); // Clear the existing list
+        // Fetch orders from the database using the method that includes items
+        List<Commande> fetchedOrders = commandeDAO.getAllCommandesWithItems(); // Use the DAO method
+
+        if (fetchedOrders != null) {
+            allOrders.addAll(fetchedOrders); // Add fetched orders to the list
+            System.out.println("Loaded " + allOrders.size() + " orders from the database.");
+        } else {
+            System.out.println("No orders found in the database.");
         }
     }
 
 
     // The main method is typically in your main application file,
     // but included here for standalone testing purposes.
-    public static void main(String[] args) {
-        // Set the look and feel to Nimbus if available
-        try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        // Run the GUI creation on the Event Dispatch Thread (EDT)
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                new ServeuseOrderInterface().setVisible(true);
-            }
-        });
-    }
 }

@@ -31,7 +31,7 @@ public class ServeuseInterface extends JFrame { // Changed class name
     private static final Color COLOR_PANEL_BORDER = COLOR_PANEL_BACKGROUND.darker(); // Darker shade of panel background for border
 
     // Constructor for the ServeuseInterface class
-    public ServeuseInterface() { // Changed constructor name
+    public ServeuseInterface(int serveuseId) { // Changed constructor name
         // Set up the main window properties
         setTitle("Interface Serveuse"); // Changed window title
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // Close operation
@@ -199,7 +199,7 @@ public class ServeuseInterface extends JFrame { // Changed class name
                 // Open the ClientMenuInterface window
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        new ClientMenuInterface().setVisible(true); // Changed to ClientMenuInterface
+                        new ClientMenuInterface(serveuseId).setVisible(true); // Changed to ClientMenuInterface
                     }
                 });
             }
@@ -214,7 +214,7 @@ public class ServeuseInterface extends JFrame { // Changed class name
                 // Open the ServeuseOrderInterface window
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        new ServeuseOrderInterface().setVisible(true);
+                        new ServeuseOrderInterface(serveuseId).setVisible(true);
                     }
                 });
             }
@@ -224,26 +224,5 @@ public class ServeuseInterface extends JFrame { // Changed class name
     // The main method is typically in your main application file,
     // but included here for standalone testing purposes.
     // In your main project, you will call this class from your main method.
-    public static void main(String[] args) {
-        // Set the look and feel to Nimbus if available for a more modern look
-        try {
-            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            // If Nimbus is not available, fall back to the default look and feel
-            // e.printStackTrace(); // Optional: print stack trace for debugging
-        }
 
-        // Run the GUI creation on the Event Dispatch Thread (EDT)
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                // Create an instance of the ServeuseInterface GUI and make it visible
-                new ServeuseInterface().setVisible(true); // Changed class name
-            }
-        });
-    }
 }

@@ -3,145 +3,118 @@ package gui; // Declare the package
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File; // Keep File import for file-based loading
-import javax.imageio.ImageIO; // Keep ImageIO import for image loading
+import java.io.File;
+import javax.imageio.ImageIO;
 
-import java.util.ArrayList; // To manage the list of orders
-import java.util.List; // To manage the list of orders
+import java.util.ArrayList;
+import java.util.List;
+
+// Import necessary DAO and Model classes
+import dao.CommandeDAO;
+import model.Commande;
+// Removed: import model.LigneCommande; // No longer directly using LigneCommande in Commande model
+import gui.CartItem; // Import CartItem as it's used in Commande model
 
 // Assuming BackgroundPanel is in the same 'gui' package or accessible
 // import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
 
 // Import the CuisinierInterface class to allow returning
+import gui.CuisinierInterface;
 
 
-// Define an enum for order status
-enum OrderStatus {
-    PENDING("En attente"),
-    PREPARING("En préparation"),
-    FINISHED("Terminée"),
-    CANCELLED("Annulée");
+// Define an enum for order status (using the same as before, assuming it matches your Commande status)
 
-    private String displayName;
-
-    OrderStatus(String displayName) {
-        this.displayName = displayName;
-    }
-
-    @Override
-    public String toString() {
-        return displayName;
-    }
-}
-
-// Define a simple class to represent an Order
-class Order {
-    private int orderId;
-    private List<String> items; // Simple list of item names for this example
-    private OrderStatus status;
-    private String tableNumber; // Added table number for context
-
-    public Order(int orderId, List<String> items, String tableNumber) {
-        this.orderId = orderId;
-        this.items = items;
-        this.tableNumber = tableNumber;
-        this.status = OrderStatus.PENDING; // Default status is PENDING
-    }
-
-    public int getOrderId() {
-        return orderId;
-    }
-
-    public List<String> getItems() {
-        return items;
-    }
-
-    public OrderStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(OrderStatus status) {
-        this.status = status;
-    }
-
-    public String getTableNumber() {
-        return tableNumber;
-    }
-}
 
 // Custom JPanel for displaying a single Order item
+// Modified to accept a model.Commande object
 class OrderPanel extends JPanel {
     private JLabel orderInfoLabel;
     private JLabel statusLabel;
     private JComboBox<OrderStatus> statusComboBox;
-    private JButton cancelButton; // Button to quickly cancel
+    private JButton cancelButton;
 
-    private Order order; // The order this panel represents
+    private Commande order; // The Commande object this panel represents
     private ChefOrderInterface parentInterface; // Reference to the parent interface
+    private CommandeDAO commandeDAO; // DAO to update order status
 
-    public OrderPanel(Order order, ChefOrderInterface parentInterface) {
+    public OrderPanel(Commande order, ChefOrderInterface parentInterface) {
         this.order = order;
         this.parentInterface = parentInterface;
+        this.commandeDAO = new CommandeDAO(); // Initialize DAO
 
-        setLayout(new GridBagLayout()); // Use GridBagLayout for flexible layout
-        setBackground(new Color(250, 246, 233)); // Use a color similar to the panel background
+        setLayout(new GridBagLayout());
+        setBackground(new Color(250, 246, 233));
         setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(230, 220, 200), 1), // Light border
-                BorderFactory.createEmptyBorder(10, 10, 10, 10) // Padding
+                BorderFactory.createLineBorder(new Color(230, 220, 200), 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-        // Set preferred size, allowing height to be determined by content
         setPreferredSize(new Dimension(400, 150));
-        setMaximumSize(new Dimension(600, 200)); // Limit maximum width
+        setMaximumSize(new Dimension(600, 200));
 
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5); // Padding around components
-        gbc.anchor = GridBagConstraints.WEST; // Align components to the west
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
 
         // Order Info Label (Displays ID, Table, and Items)
-        StringBuilder infoText = new StringBuilder("<html><b>Commande #" + order.getOrderId() + "</b> (Table: " + order.getTableNumber() + ")<br>");
-        for (String item : order.getItems()) {
-            infoText.append("- ").append(item).append("<br>");
+        // Using getTableNumber() and getItems() from the Commande model
+        StringBuilder infoText = new StringBuilder("<html><b>Commande #" + order.getIdCommande() + "</b> (Table: " + order.getTableNumber() + ")<br>");
+        // Assuming CartItem has getName() and getQuantity()
+        if (order.getItems() != null) {
+            for (CartItem item : order.getItems()) {
+                infoText.append("- ").append(item.getName()).append(" x ").append(item.getQuantity()).append("<br>");
+            }
         }
         infoText.append("</html>");
         orderInfoLabel = new JLabel(infoText.toString());
         orderInfoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         orderInfoLabel.setForeground(new Color(50, 50, 50));
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 0; // Row 0
-        gbc.gridwidth = 2; // Span across two columns
-        gbc.weightx = 1.0; // Allow horizontal expansion
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Fill horizontally
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         add(orderInfoLabel, gbc);
 
         // Status Label
         statusLabel = new JLabel("Statut:");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
         statusLabel.setForeground(new Color(50, 50, 50));
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 1; // Row 1
-        gbc.gridwidth = 1; // Reset gridwidth
-        gbc.weightx = 0.0; // Do not take extra horizontal space
-        gbc.fill = GridBagConstraints.NONE; // Do not fill
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         add(statusLabel, gbc);
 
         // Status ComboBox
-        statusComboBox = new JComboBox<>(OrderStatus.values()); // Use enum values
-        statusComboBox.setSelectedItem(order.getStatus()); // Set initial status
+        statusComboBox = new JComboBox<>(OrderStatus.values());
+        // Set initial status from the Commande object, converting string to enum
+        statusComboBox.setSelectedItem(OrderStatus.fromString(order.getStatut())); // Assuming Commande has getStatut()
         statusComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
-        statusComboBox.setBackground(new Color(240, 230, 210)); // Light background
+        statusComboBox.setBackground(new Color(240, 230, 210));
         statusComboBox.setForeground(new Color(50, 50, 50));
-        gbc.gridx = 1; // Column 1
-        gbc.gridy = 1; // Row 1
-        gbc.weightx = 1.0; // Allow horizontal expansion
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Fill horizontally
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         statusComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 OrderStatus selectedStatus = (OrderStatus) statusComboBox.getSelectedItem();
-                order.setStatus(selectedStatus); // Update the order object's status
-                System.out.println("Order #" + order.getOrderId() + " status changed to: " + selectedStatus);
-                // In a real application, you would save this status change to your backend/data store
+                String statusString = selectedStatus.toString(); // Get the string representation
+
+                // Update status in the database using the new DAO method
+                boolean success = commandeDAO.updateCommandeStatus(order.getIdCommande(), statusString);
+                if (success) {
+                    order.setStatut(statusString); // Update the Commande object's status only if DB update successful
+                    System.out.println("Order #" + order.getIdCommande() + " status updated to: " + selectedStatus + " in DB.");
+                } else {
+                    System.err.println("Failed to update status for Order #" + order.getIdCommande() + " in DB.");
+                    JOptionPane.showMessageDialog(parentInterface, "Échec de la mise à jour du statut de la commande dans la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
+                    // Revert to the previous status if DB update fails
+                    statusComboBox.setSelectedItem(OrderStatus.fromString(order.getStatut())); // Revert using the status still in the Commande object
+                }
             }
         });
         add(statusComboBox, gbc);
@@ -149,32 +122,43 @@ class OrderPanel extends JPanel {
         // Cancel Button
         cancelButton = new JButton("Annuler la commande");
         cancelButton.setFont(new Font("Arial", Font.BOLD, 12));
-        cancelButton.setBackground(Color.RED); // Red background
-        cancelButton.setForeground(Color.WHITE); // White text
+        cancelButton.setBackground(Color.RED);
+        cancelButton.setForeground(Color.WHITE);
         cancelButton.setFocusPainted(false);
         cancelButton.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         cancelButton.setOpaque(true);
         cancelButton.setBorderPainted(false);
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 2; // Row 2
-        gbc.gridwidth = 2; // Span across two columns
-        gbc.anchor = GridBagConstraints.EAST; // Align to the east (right)
-        gbc.weightx = 0.0; // Do not take extra horizontal space
-        gbc.fill = GridBagConstraints.NONE; // Do not fill
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         cancelButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int confirm = JOptionPane.showConfirmDialog(parentInterface,
-                        "Êtes-vous sûr de vouloir annuler la commande #" + order.getOrderId() + "?",
+                        "Êtes-vous sûr de vouloir annuler la commande #" + order.getIdCommande() + "?",
                         "Confirmer l'annulation",
                         JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
-                    order.setStatus(OrderStatus.CANCELLED); // Set status to cancelled
-                    statusComboBox.setSelectedItem(OrderStatus.CANCELLED); // Update the combo box
-                    // In a real application, you would persist this change
-                    System.out.println("Order #" + order.getOrderId() + " has been cancelled.");
-                    // Optionally, remove the order from the display or grey it out
-                    // parentInterface.removeOrderPanel(OrderPanel.this); // Example of removing the panel
+                    String cancelledStatusString = OrderStatus.CANCELLED.toString();
+                    // Update status to cancelled in the database
+                    boolean success = commandeDAO.updateCommandeStatus(order.getIdCommande(), cancelledStatusString);
+                    if (success) {
+                        order.setStatut(cancelledStatusString); // Update Commande object if DB update successful
+                        statusComboBox.setSelectedItem(OrderStatus.CANCELLED); // Update the combo box
+                        System.out.println("Order #" + order.getIdCommande() + " has been cancelled in DB.");
+                        // Optionally, remove the order from the display or grey it out
+                        // parentInterface.removeOrderPanel(OrderPanel.this); // Example of removing the panel
+                    } else {
+                        System.err.println("Failed to cancel order #" + order.getIdCommande() + " in DB.");
+                        JOptionPane.showMessageDialog(parentInterface, "Échec de l'annulation de la commande dans la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
+                        // Revert status in the Commande object and ComboBox if DB update fails
+                        // A more robust solution would re-fetch the status from the DB here
+                        // For simplicity, we'll just rely on the status still in the 'order' object if the update failed.
+                        statusComboBox.setSelectedItem(OrderStatus.fromString(order.getStatut()));
+                    }
                 }
             }
         });
@@ -183,9 +167,14 @@ class OrderPanel extends JPanel {
         // Add a vertical glue to push components to the top
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.weighty = 1.0; // Take up extra vertical space
+        gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.VERTICAL;
         add(Box.createVerticalGlue(), gbc);
+    }
+
+    // Method to get the order associated with this panel
+    public Commande getOrder() {
+        return this.order;
     }
 }
 
@@ -202,15 +191,15 @@ public class ChefOrderInterface extends JFrame { // Changed class name
     private static final Color COLOR_PANEL_BORDER = COLOR_PANEL_BACKGROUND.darker();
 
     private JPanel ordersContainerPanel; // Panel to hold the list of orders
-    private List<Order> currentOrders; // List to hold current orders
+    private CommandeDAO commandeDAO; // DAO to fetch orders
 
     // Constructor for the ChefOrderInterface class
     public ChefOrderInterface() { // Changed constructor name
-        // Initialize the orders list
-        currentOrders = new ArrayList<>();
+        // Initialize the DAO
+        commandeDAO = new CommandeDAO();
 
         // Set up the main window properties
-        setTitle("Interface Cuisinier - Commandes"); // Changed window title
+        setTitle("Interface Cuisinier - Commandes"); // Changed title
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // Close operation
         setSize(1280, 720); // Window size
         setLocationRelativeTo(null); // Center the window on the screen
@@ -269,6 +258,8 @@ public class ChefOrderInterface extends JFrame { // Changed class name
             mainPanel.add(fallbackBackLabel, fallbackGbc);
             // Add the main background panel to the JFrame
             add(mainPanel);
+            // Call loadOrdersFromDatabase even if icon loading failed
+            loadOrdersFromDatabase();
             return; // Exit constructor if fallback is used
         }
 
@@ -346,38 +337,44 @@ public class ChefOrderInterface extends JFrame { // Changed class name
         // Add the main background panel to the JFrame
         add(mainPanel);
 
-        // Example: Add some initial placeholder orders
-        addOrder(new Order(1, List.of("Pizza Margherita", "Coca-Cola"), "Table 5"));
-        addOrder(new Order(2, List.of("Spaghetti Bolognese", "Salade Niçoise"), "Table 2"));
-        addOrder(new Order(3, List.of("Steak Frites"), "Table 8"));
-        addOrder(new Order(4, List.of("Soupe du jour", "Pain"), "Table 1"));
-        addOrder(new Order(5, List.of("Pizza Margherita", "Pizza Margherita"), "Table 5")); // Another order for Table 5
-        addOrder(new Order(6, List.of("Spaghetti Carbonara"), "Table 3"));
-        addOrder(new Order(7, List.of("Salade César"), "Table 7"));
-        addOrder(new Order(8, List.of("Burger Classique", "Frites"), "Table 4"));
-        addOrder(new Order(9, List.of("Poisson Grillé", "Légumes"), "Table 6"));
-        addOrder(new Order(10, List.of("Tiramisu", "Café"), "Table 2")); // Dessert order
-
-
+        // Load orders from the database on startup
+        loadOrdersFromDatabase();
     }
 
-    // Method to add an order to the list and display it
-    public void addOrder(Order order) {
-        currentOrders.add(order);
-        OrderPanel orderPanel = new OrderPanel(order, this); // Create a panel for the order
-        ordersContainerPanel.add(orderPanel); // Add the panel to the container
+    // Method to load orders from the database and display them
+    private void loadOrdersFromDatabase() {
+        ordersContainerPanel.removeAll(); // Clear existing order panels
+
+        // Fetch orders from the database using the new method that includes items
+        List<Commande> orders = commandeDAO.getAllCommandesWithItems(); // Use the new DAO method
+
+        if (orders != null && !orders.isEmpty()) {
+            for (Commande order : orders) {
+                // Create and add an OrderPanel for each fetched order
+                OrderPanel orderPanel = new OrderPanel(order, this);
+                ordersContainerPanel.add(orderPanel);
+                ordersContainerPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Add vertical spacing between orders
+            }
+        } else {
+            JLabel noOrdersLabel = new JLabel("Aucune commande en attente pour le moment.");
+            noOrdersLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+            noOrdersLabel.setForeground(COLOR_TEXT_DARK);
+            ordersContainerPanel.add(noOrdersLabel);
+        }
+
         ordersContainerPanel.revalidate(); // Re-layout the container
         ordersContainerPanel.repaint(); // Repaint the container
     }
 
+
     // Method to remove an order panel (if needed, e.g., after completion/cancellation)
+    // This method is called from OrderPanel's action listeners
     public void removeOrderPanel(OrderPanel orderPanel) {
         ordersContainerPanel.remove(orderPanel);
         ordersContainerPanel.revalidate();
         ordersContainerPanel.repaint();
-        // Note: This only removes the panel from the display, not from the currentOrders list.
-        // You might want to remove it from the list as well depending on your application logic.
-        // currentOrders.remove(orderPanel.getOrder()); // Assuming OrderPanel has a getOrder() method
+        // Note: This only removes the panel from the display.
+        // The actual order status update is handled within OrderPanel's action listeners
     }
 
 
@@ -392,6 +389,15 @@ public class ChefOrderInterface extends JFrame { // Changed class name
                     break;
                 }
             }
+            // Ensure BackgroundPanel is available or handle its absence
+            // Example check (optional):
+            try {
+                Class.forName("gui.BackgroundPanel");
+            } catch (ClassNotFoundException e) {
+                System.err.println("BackgroundPanel class not found. Ensure it's in the gui package.");
+                // Handle this case, perhaps by using a plain JPanel instead of BackgroundPanel
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
