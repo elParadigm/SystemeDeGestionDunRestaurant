@@ -1,4 +1,5 @@
 package controller;
+
 import org.mindrot.jbcrypt.BCrypt;
 import dao.UtilisateurDAO;
 import model.Utilisateur;
@@ -25,6 +26,13 @@ public class UtilisateurController {
             return false;
         }
 
+        // Vérifier si le nom d'utilisateur existe déjà
+        if (utilisateurDAO.getUtilisateurByUsername(username) != null) {
+            System.out.println("Nom d'utilisateur déjà existant.");
+            return false; // Utilisateur déjà existant
+        }
+
+
         // Hachage du mot de passe avant de l'enregistrer
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
@@ -37,32 +45,52 @@ public class UtilisateurController {
     }
 
     /**
-     * Méthode pour connecter un utilisateur
+     * Méthode pour authentifier un utilisateur et retourner son objet Utilisateur.
+     * Utilise BCrypt pour vérifier le mot de passe haché.
+     * @param username Nom d'utilisateur
+     * @param password Mot de passe en clair
+     * @return L'objet Utilisateur si l'authentification réussit, null sinon.
+     */
+    public Utilisateur authenticateAndGetUser(String username, String password) {
+        if (username == null || password == null || username.trim().isEmpty() || password.trim().isEmpty()) {
+            return null; // Identifiants invalides
+        }
+
+        // Récupérer l'utilisateur par nom d'utilisateur
+        Utilisateur utilisateur = utilisateurDAO.getUtilisateurByUsername(username);
+
+        // Vérifier si l'utilisateur existe et si le mot de passe correspond au hachage stocké
+        if (utilisateur != null && BCrypt.checkpw(password, utilisateur.getMotDePasse())) {
+            return utilisateur; // Authentification réussie, retourner l'objet Utilisateur
+        } else {
+            return null; // Authentification échouée
+        }
+    }
+
+
+    /**
+     * Méthode pour connecter un utilisateur (ancienne version, peut être remplacée par authenticateAndGetUser)
      * @param username Nom d'utilisateur
      * @param password Mot de passe
      * @return true si les identifiants sont corrects, false sinon
      */
-    public boolean connecterUtilisateur(String username, String password) {
-        if (username == null || password == null || username.trim().isEmpty() || password.trim().isEmpty()) {
-            return false;
-        }
+    // public boolean connecterUtilisateur(String username, String password) {
+    //     // Cette méthode peut être remplacée par authenticateAndGetUser si vous récupérez l'utilisateur complet
+    //     Utilisateur utilisateur = utilisateurDAO.getUtilisateurByUsername(username);
+    //     return utilisateur != null && BCrypt.checkpw(password, utilisateur.getMotDePasse());
+    // }
 
-        // Authentification via le DAO
-        return utilisateurDAO.authentifier(username, password);
-    }
 
     /**
-     * Obtenir le rôle d’un utilisateur après connexion
+     * Obtenir le rôle d’un utilisateur par nom d'utilisateur
+     * (Peut être remplacé par l'accès au rôle via l'objet Utilisateur retourné par authenticateAndGetUser)
      * @param username Nom d'utilisateur
      * @return rôle de l'utilisateur ou null si non trouvé
      */
-    public String obtenirRoleUtilisateur(String username) {
-        if (username == null || username.trim().isEmpty()) {
-            return null;
-        }
+    // public String obtenirRoleUtilisateur(String username) {
+    //     Utilisateur utilisateur = utilisateurDAO.getUtilisateurByUsername(username);
+    //     return (utilisateur != null) ? utilisateur.getRole() : null;
+    // }
 
-        return utilisateurDAO.obtenirRole(username);
-    }
-
-
+    // Vous pourriez vouloir ajouter d'autres méthodes ici, comme obtenirUtilisateurParId, etc.
 }

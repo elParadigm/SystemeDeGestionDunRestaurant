@@ -12,10 +12,10 @@ public class UtilisateurDAO {
     private Connection connection;
 
     public UtilisateurDAO() {
-        connection = SingletonConnection.getInstance(); // ← Correction ici
+        connection = SingletonConnection.getInstance(); // Get the singleton connection
     }
 
-    // Créer un utilisateur
+    // Create a user
     public boolean insertUtilisateur(Utilisateur utilisateur) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -32,7 +32,7 @@ public class UtilisateurDAO {
         }
     }
 
-    // Lire un utilisateur par ID
+    // Read a user by ID
     public Utilisateur getUtilisateurById(int id) {
         Utilisateur utilisateur = null;
         try {
@@ -54,7 +54,30 @@ public class UtilisateurDAO {
         return utilisateur;
     }
 
-    // Lire tous les utilisateurs
+    // NEW METHOD: Read a user by Username
+    public Utilisateur getUtilisateurByUsername(String username) {
+        Utilisateur utilisateur = null;
+        try {
+            PreparedStatement ps = connection.prepareStatement(
+                    "SELECT * FROM utilisateur WHERE nomUtilisateur = ?"
+            );
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                utilisateur = new Utilisateur();
+                utilisateur.setIdUtilisateur(rs.getInt("idUtilisateur"));
+                utilisateur.setNomUtilisateur(rs.getString("nomUtilisateur"));
+                utilisateur.setMotDePasse(rs.getString("motDePasse"));
+                utilisateur.setRole(rs.getString("role"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return utilisateur;
+    }
+
+
+    // Read all users
     public List<Utilisateur> getAllUtilisateurs() {
         List<Utilisateur> utilisateurs = new ArrayList<>();
         try {
@@ -74,7 +97,7 @@ public class UtilisateurDAO {
         return utilisateurs;
     }
 
-    // Mettre à jour un utilisateur
+    // Update a user
     public boolean updateUtilisateur(Utilisateur utilisateur) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -92,7 +115,7 @@ public class UtilisateurDAO {
         }
     }
 
-    // Supprimer un utilisateur
+    // Delete a user
     public boolean deleteUtilisateur(int id) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -107,7 +130,7 @@ public class UtilisateurDAO {
         }
     }
 
-    // Authentifier un utilisateur
+    // Authenticate a user (kept for compatibility, but authenticateAndGetUser is preferred for GUI)
     public boolean authentifier(String username, String password) {
         String sql = "SELECT motDePasse FROM utilisateur WHERE nomUtilisateur = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -125,7 +148,7 @@ public class UtilisateurDAO {
         return false;
     }
 
-    // Obtenir le rôle d’un utilisateur
+    // Get a user's role by username (kept for compatibility, but accessing role from Utilisateur object is preferred)
     public String obtenirRole(String nomUtilisateur) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -142,4 +165,5 @@ public class UtilisateurDAO {
         return null;
     }
 
+    // You might want to add other methods here, like obtenirUtilisateurParId, etc.
 }

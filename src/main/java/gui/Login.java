@@ -4,12 +4,17 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage; // Added for image loading
+import java.io.File; // Added for file handling
+import javax.imageio.ImageIO; // Added for image loading
+
 // Assuming BackgroundPanel is in the same 'gui' package or accessible
 // import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
 
 // Import the Signup class from the same package
-import controller.UtilisateurController;
+import controller.UtilisateurController; // Import UtilisateurController
 import gui.Signup;
+import model.Utilisateur; // Import Utilisateur model to get user details
 
 
 public class Login extends JFrame {
@@ -35,7 +40,7 @@ public class Login extends JFrame {
         // Create the main panel using the custom BackgroundPanel with an image
         // Assuming BackgroundPanel is defined elsewhere and accessible.
         // Replace "path/to/your/background_image.jpg" with the actual path to your image file
-        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg");
+        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg"); // Ensure image path is correct
         // mainPanel.setBackground(COLOR_BACKGROUND); // Background color is handled by the image
 
         // Create the login panel (standard JPanel)
@@ -190,29 +195,31 @@ public class Login extends JFrame {
                 String username = userTextField.getText();
                 String password = new String(passTextField.getPassword());
 
-                // Appel au contrôleur
+                // Appel au contrôleur pour authentification et obtenir l'utilisateur
                 UtilisateurController controller = new UtilisateurController();
-                boolean loginSuccess = controller.connecterUtilisateur(username, password);
+                // Use the authenticateAndGetUser method
+                Utilisateur authenticatedUser = controller.authenticateAndGetUser(username, password);
 
-                if (loginSuccess) {
-                    String role = controller.obtenirRoleUtilisateur(username);
+
+                if (authenticatedUser != null) {
+                    String role = authenticatedUser.getRole(); // Get role from the authenticated user object
+                    int userId = authenticatedUser.getIdUtilisateur(); // Get ID from the authenticated user object
 
                     // Ferme la fenêtre Login
                     dispose();
 
-                    // Redirection selon le rôle
-                    switch (role) {
-                        case "client":
-                            new ClientMenuInterface().setVisible(true);
-                            break;
-                        case "cuisinier":
-                            new CuisinierInterface().setVisible(true);
-                            break;
-                        case "serveuse":
-                            new ServeuseInterface().setVisible(true);
-                            break;
-                        default:
-                            JOptionPane.showMessageDialog(Login.this, "Rôle inconnu !");
+                    // Redirection selon le rôle - Use equalsIgnoreCase for case-insensitive comparison
+                    if ("client".equalsIgnoreCase(role)) {
+                        // Pass the client ID to the ClientMenuInterface constructor
+                        new ClientMenuInterface(userId).setVisible(true);
+                    } else if ("cuisinier".equalsIgnoreCase(role)) {
+                        // new CuisinierInterface().setVisible(true); // Uncomment and implement CuisinierInterface
+                        JOptionPane.showMessageDialog(Login.this, "Interface Cuisinier non implémentée.");
+                    } else if ("serveuse".equalsIgnoreCase(role)) {
+                        // new ServeuseInterface().setVisible(true); // Uncomment and implement ServeuseInterface
+                        JOptionPane.showMessageDialog(Login.this, "Interface Serveuse non implémentée.");
+                    } else {
+                        JOptionPane.showMessageDialog(Login.this, "Rôle utilisateur inconnu !");
                     }
 
                 } else {
