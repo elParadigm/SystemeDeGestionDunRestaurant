@@ -186,10 +186,8 @@ class DishDetailsDialog extends JDialog {
                     return;
                 }
 
-
                 // --- DATABASE INTEGRATION: Save/Update Plat ---
                 PlatDAO platDAO = new PlatDAO(); // Assuming you have a PlatDAO class
-
                 try {
                     // Read image data from the selected file path
                     File imageFile = new File(imagePath);
@@ -198,50 +196,25 @@ class DishDetailsDialog extends JDialog {
                         fis.read(imageData);
                     } // fis is closed automatically by try-with-resources
 
-                    if (isModification) {
-                        // Get the Plat object from the panel being modified
-                        Plat platToUpdate = dishPanelToModify.getPlat(); // Assuming DishPanel stores the Plat object
-                        if (platToUpdate != null) {
-                            // Update the Plat object with new details
-                            platToUpdate.setNom(name);
-                            platToUpdate.setDescription(description);
-                            platToUpdate.setPrix(price); // Set updated price
-                            platToUpdate.setIdMenu(menuId); // Set updated menu ID
-                            platToUpdate.setImage(imageData); // Set the new image data
+                    // Create a new Plat object
+                    Plat newPlat = new Plat(); // Assuming your Plat model has a no-arg constructor
+                    newPlat.setNom(name);
+                    newPlat.setDescription(description);
+                    newPlat.setPrix(price); // Set price
+                    newPlat.setIdMenu(menuId); // Set menu ID
+                    newPlat.setImage(imageData); // Set the image data
 
-                            // Call DAO method to update the plat in the database
-                            boolean success = platDAO.updatePlat(platToUpdate); // Assuming updatePlat takes a Plat object
-                            if (success) {
-                                // Update the GUI panel with the new details from the updated Plat object
-                                dishPanelToModify.updateDishDetails(platToUpdate); // Update panel with the Plat object
-                                JOptionPane.showMessageDialog(DishDetailsDialog.this, "Plat modifié avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
-                                dispose(); // Close the dialog on success
-                            } else {
-                                JOptionPane.showMessageDialog(DishDetailsDialog.this, "Échec de la modification du plat dans la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
+                    // Call DAO method to add the new plat to the database
+                    // Assuming addPlat returns the generated ID or -1 on failure
+                    int generatedId = platDAO.addPlat(newPlat); // Assuming addPlat returns the generated ID or -1 on failure
+                    if (generatedId != -1) {
+                        newPlat.setIdPlat(generatedId); // Set the generated ID on the Plat object
+                        // Add a new dish panel to the GUI
+                        parentInterface.addDish(new DishPanel(newPlat, parentInterface)); // Pass the Plat object and parent interface
+                        JOptionPane.showMessageDialog(DishDetailsDialog.this, "Plat ajouté avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
+                        dispose(); // Close the dialog on success
                     } else {
-                        // Create a new Plat object
-                        Plat newPlat = new Plat(); // Assuming your Plat model has a no-arg constructor
-                        newPlat.setNom(name);
-                        newPlat.setDescription(description);
-                        newPlat.setPrix(price); // Set price
-                        newPlat.setIdMenu(menuId); // Set menu ID
-                        newPlat.setImage(imageData); // Set the image data
-
-
-                        // Call DAO method to add the new plat to the database
-                        // Assuming addPlat returns the generated ID or a boolean indicating success
-                        int generatedId = platDAO.addPlat(newPlat); // Assuming addPlat returns the generated ID or -1 on failure
-                        if (generatedId != -1) {
-                            newPlat.setIdPlat(generatedId); // Set the generated ID on the Plat object
-                            // Add a new dish panel to the GUI
-                            parentInterface.addDish(new DishPanel(newPlat, parentInterface)); // Pass the Plat object and parent interface
-                            JOptionPane.showMessageDialog(DishDetailsDialog.this, "Plat ajouté avec succès!", "Succès", JOptionPane.INFORMATION_MESSAGE);
-                            dispose(); // Close the dialog on success
-                        } else {
-                            JOptionPane.showMessageDialog(DishDetailsDialog.this, "Échec de l'ajout du plat à la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
-                        }
+                        JOptionPane.showMessageDialog(DishDetailsDialog.this, "Échec de l'ajout du plat à la base de données.", "Erreur de base de données", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (IOException ex) {
                     JOptionPane.showMessageDialog(DishDetailsDialog.this, "Erreur de lecture de l'image: " + ex.getMessage(), "Erreur d'image", JOptionPane.ERROR_MESSAGE);
