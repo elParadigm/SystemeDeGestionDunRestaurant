@@ -30,7 +30,7 @@ public class SingletonConnection {
 	            e.printStackTrace();
         }
         }
-//Méthode qui retourne l’instance et la créer si elle n'existe pas
+
         public static Connection getInstance(){
                 if(connect == null){
 

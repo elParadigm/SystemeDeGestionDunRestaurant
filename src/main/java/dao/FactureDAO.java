@@ -13,7 +13,7 @@ public class FactureDAO {
         connection = SingletonConnection.getInstance(); // Connexion via Singleton
     }
 
-    // 1. Ajouter une facture
+
     public boolean insertFacture(Facture facture) {
         String sql = "INSERT INTO facture(idCommande, montantTotal, horodatage) VALUES (?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -79,7 +79,7 @@ public class FactureDAO {
         return factures;
     }
 
-    // 4. Mettre à jour une facture
+
     public boolean updateFacture(Facture facture) {
         String sql = "UPDATE facture SET idCommande = ?, montantTotal = ?, horodatage = ? WHERE idFacture = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -96,7 +96,7 @@ public class FactureDAO {
         }
     }
 
-    // 5. Supprimer une facture par ID
+
     public boolean deleteFacture(int idFacture) {
         String sql = "DELETE FROM facture WHERE idFacture = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -109,7 +109,7 @@ public class FactureDAO {
         }
     }
 
-    // 6. Obtenir toutes les factures liées à une commande
+
     public List<Facture> getFacturesByCommandeId(int idCommande) {
         List<Facture> factures = new ArrayList<>();
         String sql = "SELECT * FROM facture WHERE idCommande = ?";

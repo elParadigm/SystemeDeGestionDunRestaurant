@@ -1,17 +1,18 @@
 package model;
 
-// Import necessary classes for byte array image data
-import java.io.Serializable; // Often useful for model classes
 
-public class Plat implements Serializable { // Implement Serializable if you plan to pass Plat objects
+import java.io.Serializable;
+
+public class Plat implements Serializable {
+
     private int  idPlat;
     private int  idMenu;
     private String  nom;
     private double prix;
     private String  description;
-    private byte[] image; // Changed from File to byte[]
+    private byte[] image;
 
-    // Constructor with all fields (including byte[])
+
     public Plat(int idPlat, int idMenu, String nom, double prix, String description, byte[] image) {
         this.idPlat = idPlat;
         this.idMenu = idMenu;

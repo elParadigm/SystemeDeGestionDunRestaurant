@@ -2,11 +2,9 @@ package gui;
 import model.Plat;
 
 public class CartItem {
-    // Changed to store the Plat object directly in the CartItem
     private Plat plat;
     private int quantity;
 
-    // Updated constructor to accept a Plat object
     public CartItem(Plat plat, int quantity) {
         this.plat = plat;
         this.quantity = quantity;
@@ -17,11 +15,11 @@ public class CartItem {
     }
 
     public String getName() {
-        return plat.getNom(); // Get name from Plat object
+        return plat.getNom();
     }
 
     public double getPrice() {
-        return plat.getPrix(); // Get price from Plat object
+        return plat.getPrix();
     }
 
     public int getQuantity() {
@@ -32,10 +30,8 @@ public class CartItem {
         this.quantity = quantity;
     }
 
-    // Override toString for easy display in a list
     @Override
     public String toString() {
-        // Format price with 2 decimal places
         return quantity + " x " + plat.getNom() + " (" + String.format("%.2f", plat.getPrix()) + " €)";
     }
 }

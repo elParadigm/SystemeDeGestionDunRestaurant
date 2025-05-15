@@ -9,7 +9,7 @@ import java.util.List;
 
 public class ClientDAO extends UtilisateurDAO {
 
-    // Obtenir un client par ID
+
     public Client getClientById(int id) {
         Utilisateur utilisateur = super.getUtilisateurById(id);
         if (utilisateur != null && "client".equalsIgnoreCase(utilisateur.getRole())) {
@@ -23,7 +23,7 @@ public class ClientDAO extends UtilisateurDAO {
         return null;
     }
 
-    // Obtenir tous les clients
+
     public List<Client> getAllClients() {
         List<Utilisateur> utilisateurs = super.getAllUtilisateurs();
         List<Client> clients = new ArrayList<>();
@@ -42,9 +42,9 @@ public class ClientDAO extends UtilisateurDAO {
         return clients;
     }
 
-    // Insérer un client
+
     public boolean insertClient(Client client) {
-        // Assurez-vous que le rôle est bien "client"
+
         client.setRole("client");
         return super.insertUtilisateur(client);
     }

@@ -12,10 +12,9 @@ public class UtilisateurDAO {
     private Connection connection;
 
     public UtilisateurDAO() {
-        connection = SingletonConnection.getInstance(); // Get the singleton connection
+        connection = SingletonConnection.getInstance();
     }
 
-    // Create a user
     public boolean insertUtilisateur(Utilisateur utilisateur) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -32,7 +31,6 @@ public class UtilisateurDAO {
         }
     }
 
-    // Read a user by ID
     public Utilisateur getUtilisateurById(int id) {
         Utilisateur utilisateur = null;
         try {
@@ -54,7 +52,6 @@ public class UtilisateurDAO {
         return utilisateur;
     }
 
-    // NEW METHOD: Read a user by Username
     public Utilisateur getUtilisateurByUsername(String username) {
         Utilisateur utilisateur = null;
         try {
@@ -76,8 +73,6 @@ public class UtilisateurDAO {
         return utilisateur;
     }
 
-
-    // Read all users
     public List<Utilisateur> getAllUtilisateurs() {
         List<Utilisateur> utilisateurs = new ArrayList<>();
         try {
@@ -97,7 +92,6 @@ public class UtilisateurDAO {
         return utilisateurs;
     }
 
-    // Update a user
     public boolean updateUtilisateur(Utilisateur utilisateur) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -115,7 +109,6 @@ public class UtilisateurDAO {
         }
     }
 
-    // Delete a user
     public boolean deleteUtilisateur(int id) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -130,7 +123,6 @@ public class UtilisateurDAO {
         }
     }
 
-    // Authenticate a user (kept for compatibility, but authenticateAndGetUser is preferred for GUI)
     public boolean authentifier(String username, String password) {
         String sql = "SELECT motDePasse FROM utilisateur WHERE nomUtilisateur = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -148,7 +140,6 @@ public class UtilisateurDAO {
         return false;
     }
 
-    // Get a user's role by username (kept for compatibility, but accessing role from Utilisateur object is preferred)
     public String obtenirRole(String nomUtilisateur) {
         try {
             PreparedStatement ps = connection.prepareStatement(
@@ -164,6 +155,4 @@ public class UtilisateurDAO {
         }
         return null;
     }
-
-    // You might want to add other methods here, like obtenirUtilisateurParId, etc.
 }

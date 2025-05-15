@@ -4,161 +4,151 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage; // Added for image loading
-import java.io.File; // Added for file handling
-import javax.imageio.ImageIO; // Added for image loading
+import java.awt.image.BufferedImage;
+import java.io.File;
+import javax.imageio.ImageIO;
 
-// Assuming BackgroundPanel is in the same 'gui' package or accessible
-// import gui.BackgroundPanel; // You might need this import depending on where BackgroundPanel is defined
 
-// Import the Signup class from the same package
-import controller.UtilisateurController; // Import UtilisateurController
-import gui.Signup;
-import model.Utilisateur; // Import Utilisateur model to get user details
 
-// Import CuisinierInterface and ServeuseInterface
-// Make sure these classes exist in your gui package and are correctly named
-import gui.CuisinierInterface;
-import gui.ServeuseInterface;
+
+import controller.UtilisateurController;
+import model.Utilisateur;
+
+
 
 
 public class Login extends JFrame {
 
-    // Define the colors used in the GUI
-    private static final Color COLOR_BACKGROUND = Color.decode("#FFFDF6"); // Light beige/yellow background (Note: This color won't be fully visible with a background image)
-    private static final Color COLOR_PANEL_BACKGROUND = Color.decode("#FAF6E9"); // Slightly darker creamy beige for panels
-    private static final Color COLOR_INPUT_FIELD_BACKGROUND = Color.decode("#FDFDFD"); // Very light white for input fields
-    private static final Color COLOR_BUTTON_BACKGROUND = Color.decode("#A0C878"); // Muted green for buttons
-    private static final Color COLOR_TEXT_DARK = new Color(50, 50, 50); // Dark grey text
-    private static final Color COLOR_BUTTON_TEXT = Color.WHITE; // White text for buttons
-    private static final Color COLOR_PANEL_BORDER = COLOR_PANEL_BACKGROUND.darker(); // Darker shade of panel background for border
 
-    // Constructor for the Login class
-    public Login() { // Changed constructor name
-        // Set up the main window properties
-        setTitle("Login"); // Window title
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // Close operation
-        setSize(1280, 720); // Window size
-        setLocationRelativeTo(null); // Center the window on the screen
-        // getContentPane().setBackground(COLOR_BACKGROUND); // No need to set background here, handled by BackgroundPanel
+    private static final Color COLOR_BACKGROUND = Color.decode("#FFFDF6");
+    private static final Color COLOR_PANEL_BACKGROUND = Color.decode("#FAF6E9");
+    private static final Color COLOR_INPUT_FIELD_BACKGROUND = Color.decode("#FDFDFD");
+    private static final Color COLOR_BUTTON_BACKGROUND = Color.decode("#A0C878");
+    private static final Color COLOR_TEXT_DARK = new Color(50, 50, 50);
+    private static final Color COLOR_BUTTON_TEXT = Color.WHITE;
+    private static final Color COLOR_PANEL_BORDER = COLOR_PANEL_BACKGROUND.darker();
 
-        // Create the main panel using the custom BackgroundPanel with an image
-        // Assuming BackgroundPanel is defined elsewhere and accessible.
-        // Replace "path/to/your/background_image.jpg" with the actual path to your image file
-        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg"); // Ensure image path is correct
-        // mainPanel.setBackground(COLOR_BACKGROUND); // Background color is handled by the image
 
-        // Create the login panel (standard JPanel)
+    public Login() {
+
+        setTitle("Login");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1280, 720);
+        setLocationRelativeTo(null);
+
+        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg");
+
+
         JPanel loginPanel = new JPanel();
-        loginPanel.setBackground(COLOR_PANEL_BACKGROUND); // Set background color
-        loginPanel.setLayout(new GridBagLayout()); // Use GridBagLayout for internal layout
-        // Set a compound border: a line border and an empty border for padding
+        loginPanel.setBackground(COLOR_PANEL_BACKGROUND);
+        loginPanel.setLayout(new GridBagLayout());
+
         loginPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(COLOR_PANEL_BORDER, 1), // Outer line border
-                BorderFactory.createEmptyBorder(40, 60, 40, 60) // Inner padding
+                BorderFactory.createLineBorder(COLOR_PANEL_BORDER, 1),
+                BorderFactory.createEmptyBorder(40, 60, 40, 60)
         ));
 
-        // GridBagConstraints for controlling component placement in GridBagLayout
+
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10); // Padding around components
-        gbc.anchor = GridBagConstraints.CENTER; // Center components by default
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.anchor = GridBagConstraints.CENTER;
 
         // Welcome Label
         JLabel welcomeLabel = new JLabel("Bienvenue");
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 36)); // Set font and size
-        welcomeLabel.setForeground(COLOR_TEXT_DARK); // Set text color
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 0; // Row 0
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 36));
+        welcomeLabel.setForeground(COLOR_TEXT_DARK);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
         gbc.gridwidth = 2; // Span across 2 columns
-        gbc.insets = new Insets(10, 10, 25, 10); // Adjust padding below the label
+        gbc.insets = new Insets(10, 10, 25, 10);
         loginPanel.add(welcomeLabel, gbc);
 
-        // Reset gridwidth and insets for subsequent components
+
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.gridwidth = 1;
 
         // Username Label
         JLabel userLabel = new JLabel("Nom d'utilisateur");
-        userLabel.setFont(new Font("Arial", Font.PLAIN, 16)); // Set font and size
-        userLabel.setForeground(COLOR_TEXT_DARK); // Set text color
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 1; // Row 1
-        gbc.anchor = GridBagConstraints.WEST; // Align to the west (left)
+        userLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        userLabel.setForeground(COLOR_TEXT_DARK);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.WEST;
         loginPanel.add(userLabel, gbc);
 
         // Username Text Field
-        JTextField userTextField = new JTextField(25); // Create a text field with 25 columns width hint
-        userTextField.setBackground(COLOR_INPUT_FIELD_BACKGROUND); // Set background color
-        userTextField.setForeground(COLOR_TEXT_DARK); // Set text color
-        userTextField.setFont(new Font("Arial", Font.PLAIN, 16)); // Set font and size
+        JTextField userTextField = new JTextField(25);
+        userTextField.setBackground(COLOR_INPUT_FIELD_BACKGROUND);
+        userTextField.setForeground(COLOR_TEXT_DARK);
+        userTextField.setFont(new Font("Arial", Font.PLAIN, 16));
         // Create a border for the text field
         Border textFieldBorder = BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.GRAY, 1), // Outer line border
-                BorderFactory.createEmptyBorder(8, 10, 8, 10) // Inner padding
+                BorderFactory.createLineBorder(Color.GRAY, 1),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
         );
-        userTextField.setBorder(textFieldBorder); // Set the border
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 2; // Row 2
-        gbc.gridwidth = 2; // Span across 2 columns
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Make the component fill horizontally
+        userTextField.setBorder(textFieldBorder);
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         loginPanel.add(userTextField, gbc);
 
-        // Password Label
+
         JLabel passLabel = new JLabel("Mot de passe");
-        passLabel.setFont(new Font("Arial", Font.PLAIN, 16)); // Set font and size
-        passLabel.setForeground(COLOR_TEXT_DARK); // Set text color
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 3; // Row 3
-        gbc.gridwidth = 1; // Reset gridwidth to 1
-        gbc.fill = GridBagConstraints.NONE; // Do not fill
-        gbc.anchor = GridBagConstraints.WEST; // Align to the west (left)
+        passLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        passLabel.setForeground(COLOR_TEXT_DARK);
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.WEST;
         loginPanel.add(passLabel, gbc);
 
-        // Password Text Field
-        JPasswordField passTextField = new JPasswordField(25); // Create a password field
-        passTextField.setBackground(COLOR_INPUT_FIELD_BACKGROUND); // Set background color
-        passTextField.setForeground(COLOR_TEXT_DARK); // Set text color
-        passTextField.setFont(new Font("Arial", Font.PLAIN, 16)); // Set font and size
-        passTextField.setBorder(textFieldBorder); // Set the same border as the username field
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 4; // Row 4
-        gbc.gridwidth = 2; // Span across 2 columns
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Make the component fill horizontally
+
+        JPasswordField passTextField = new JPasswordField(25);
+        passTextField.setBackground(COLOR_INPUT_FIELD_BACKGROUND);
+        passTextField.setForeground(COLOR_TEXT_DARK);
+        passTextField.setFont(new Font("Arial", Font.PLAIN, 16));
+        passTextField.setBorder(textFieldBorder);
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         loginPanel.add(passTextField, gbc);
 
         // Login Button
-        JButton loginButton = new JButton("Se connecter"); // Create the login button
-        loginButton.setFont(new Font("Arial", Font.BOLD, 16)); // Set font and size
-        loginButton.setBackground(COLOR_BUTTON_BACKGROUND); // Set background color
-        loginButton.setForeground(COLOR_BUTTON_TEXT); // Set text color
-        loginButton.setFocusPainted(false); // Remove focus border
+        JButton loginButton = new JButton("Se connecter");
+        loginButton.setFont(new Font("Arial", Font.BOLD, 16));
+        loginButton.setBackground(COLOR_BUTTON_BACKGROUND);
+        loginButton.setForeground(COLOR_BUTTON_TEXT);
+        loginButton.setFocusPainted(false);
         loginButton.setBorder(BorderFactory.createEmptyBorder(12, 30, 12, 30)); // Add padding
-        loginButton.setOpaque(true); // Make the background visible
-        loginButton.setBorderPainted(false); // Do not paint the border
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 5; // Row 5
-        gbc.gridwidth = 2; // Span across 2 columns
-        gbc.fill = GridBagConstraints.NONE; // Do not fill
-        gbc.anchor = GridBagConstraints.CENTER; // Center the button
-        gbc.insets = new Insets(25, 10, 10, 10); // Adjust padding above the button
+        loginButton.setOpaque(true);
+        loginButton.setBorderPainted(false);
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(25, 10, 10, 10);
         loginPanel.add(loginButton, gbc);
 
-        // Add a label that acts as a link to go to the signup page
-        JLabel goToSignupLabel = new JLabel("Vous n'avez pas de compte ? Inscrivez-vous");
-        goToSignupLabel.setFont(new Font("Arial", Font.PLAIN, 14)); // Set font and size
-        goToSignupLabel.setForeground(Color.blue); // Set text color to blue
-        goToSignupLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Change cursor on hover
 
-        // Add a MouseListener to the signup label
+        JLabel goToSignupLabel = new JLabel("Vous n'avez pas de compte ? Inscrivez-vous");
+        goToSignupLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        goToSignupLabel.setForeground(Color.blue);
+        goToSignupLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+
         goToSignupLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                // This method is called when the mouse is clicked on the label
+
                 System.out.println("Go to Signup link clicked!");
-                // Close the current Login window
+
                 Login.this.dispose();
 
-                // Open the Signup window on the Event Dispatch Thread
+
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
                         new Signup().setVisible(true);
@@ -168,60 +158,60 @@ public class Login extends JFrame {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                // Change the label's appearance on hover (e.g., underline)
+
                 goToSignupLabel.setText("<html><u>Vous n'avez pas de compte ? Inscrivez-vous</u></html>");
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                // Revert the appearance when the mouse leaves
+
                 goToSignupLabel.setText("Vous n'avez pas de compte ? Inscrivez-vous");
             }
         });
 
-        gbc.gridx = 0; // Column 0
-        gbc.gridy = 6; // Row 6 (below the login button)
-        gbc.gridwidth = 2; // Span across 2 columns
-        gbc.insets = new Insets(20, 10, 10, 10); // Adjust padding above the label
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(20, 10, 10, 10);
         loginPanel.add(goToSignupLabel, gbc);
 
 
-        // Add the login panel to the main panel, centered
+
         GridBagConstraints mainGbc = new GridBagConstraints();
         mainPanel.add(loginPanel, mainGbc);
 
-        // Add the main panel to the JFrame
+
         add(mainPanel);
 
-        // Add an ActionListener to the login button
+
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String username = userTextField.getText();
                 String password = new String(passTextField.getPassword());
 
-                // Appel au contrôleur pour authentification et obtenir l'utilisateur
+
                 UtilisateurController controller = new UtilisateurController();
-                // Use the authenticateAndGetUser method
+
                 Utilisateur authenticatedUser = controller.authenticateAndGetUser(username, password);
 
 
                 if (authenticatedUser != null) {
-                    String role = authenticatedUser.getRole(); // Get role from the authenticated user object
-                    int userId = authenticatedUser.getIdUtilisateur(); // Get ID from the authenticated user object
+                    String role = authenticatedUser.getRole();
+                    int userId = authenticatedUser.getIdUtilisateur();
 
-                    // Ferme la fenêtre Login
+
                     dispose();
 
-                    // Redirection selon le rôle - Use equalsIgnoreCase for case-insensitive comparison
+
                     if ("client".equalsIgnoreCase(role)) {
-                        // Pass the client ID to the ClientMenuInterface constructor
+
                         new ClientMenuInterface(userId).setVisible(true);
                     } else if ("cuisinier".equalsIgnoreCase(role)) {
-                        // Open CuisinierInterface
+
                         new CuisinierInterface().setVisible(true);
                     } else if ("serveuse".equalsIgnoreCase(role)) {
-                        // Open ServeuseInterface
+
                         new ServeuseInterface(userId).setVisible(true);
                     } else {
                         JOptionPane.showMessageDialog(Login.this, "Rôle utilisateur inconnu !");
@@ -237,11 +227,9 @@ public class Login extends JFrame {
         });
     }
 
-    // The main method is typically in your main application file,
-    // but included here for standalone testing purposes.
-    // In your main project, you will call this class from your main method.
+
     public static void main(String[] args) {
-        // Set the look and feel to Nimbus if available for a more modern look
+
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -250,14 +238,12 @@ public class Login extends JFrame {
                 }
             }
         } catch (Exception e) {
-            // If Nimbus is not available, fall back to the default look and feel
-            // e.printStackTrace(); // Optional: print stack trace for debugging
+
         }
 
-        // Run the GUI creation on the Event Dispatch Thread (EDT)
+
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                // Create an instance of the Login GUI and make it visible
                 new Login().setVisible(true);
             }
         });
