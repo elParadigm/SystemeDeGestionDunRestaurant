@@ -1,7 +1,9 @@
 package gui; // Declare the package
 
-import model.Plat;
+import model.Plat; // Assuming your Plat model is in the 'model' package
+import model.Menu; // Assuming your Menu model is in the 'model' package
 import dao.PlatDAO; // For fetching menu items
+import dao.MenuDAO; // For fetching menu list
 import gui.CartItem; // Assuming you have a CartItem class
 import model.Commande; // Import Commande model
 import dao.CommandeDAO; // Import CommandeDAO
@@ -21,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.sql.Timestamp; // For dateCommande (java.sql.Timestamp)
 import java.util.Date; // Import Date class
+import java.sql.SQLException; // Import SQLException for potential handling
+import java.lang.ClassNotFoundException; // Import ClassNotFoundException
 
 
 // Assuming BackgroundPanel is in the same 'gui' package or accessible
@@ -62,22 +66,9 @@ class CartDialog extends JDialog {
         cartTitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         cartTitleLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 5, 0)); // Add some padding
 
-        // Removed: Panel for table number input
-        // Removed: JPanel tableNumberPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        // Removed: tableNumberPanel.setOpaque(false);
-        // Removed: JLabel tableLabel = new JLabel("Numéro de Table:");
-        // Removed: tableLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        // Removed: tableLabel.setForeground(new Color(50, 50, 50));
-        // Removed: tableNumberField = new JTextField(5); // Field for table number
-        // Removed: tableNumberField.setFont(new Font("Arial", Font.PLAIN, 14));
-        // Removed: tableNumberField.setBackground(new Color(253, 253, 253));
-        // Removed: tableNumberPanel.add(tableLabel);
-        // Removed: tableNumberPanel.add(tableNumberField);
-
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
         headerPanel.add(cartTitleLabel, BorderLayout.NORTH);
-        // Removed: headerPanel.add(tableNumberPanel, BorderLayout.CENTER); // Removed table number panel
         add(headerPanel, BorderLayout.NORTH);
 
 
@@ -100,7 +91,6 @@ class CartDialog extends JDialog {
         totalLabel = new JLabel("Total: 0.00 €"); // Initial text
         totalLabel.setFont(new Font("Arial", Font.BOLD, 18));
         totalLabel.setForeground(new Color(50, 50, 50));
-        // Removed horizontal alignment here, FlowLayout will handle it
 
 
         // Panel for buttons
@@ -150,26 +140,19 @@ class CartDialog extends JDialog {
                     return; // Exit if cart is empty
                 }
 
-                // Removed: Table number validation is no longer needed
-
-
                 // --- DATABASE INTEGRATION: Place Order ---
                 CommandeDAO commandeDAO = new CommandeDAO();
                 // Use the stored client ID from the parent interface
                 int clientId = parentInterface.getLoggedInClientId(); // Get the client ID from the parent frame
 
                 if (clientId != -1) { // Ensure a client is "logged in"
-                    // Pass the table number along with client ID and cart items
-                    // Note: Your current DB schema doesn't have a table number field in 'commande'.
-                    // You might need to add this field to the 'commande' table and Commande model
-                    // if you need to store it in the database. For now, we just validate it.
-                    boolean orderPlaced = commandeDAO.placeOrder(clientId, parentInterface.getCartItems()); // Pass cart items
+                    // This method call passes the clientId to the DAO
+                    boolean orderPlaced = commandeDAO.placeOrder(clientId, parentInterface.getCartItems());
 
                     if (orderPlaced) {
                         JOptionPane.showMessageDialog(CartDialog.this, "Commande passée avec succès!", "Commande Réussie", JOptionPane.INFORMATION_MESSAGE);
                         parentInterface.clearCart(); // Clear the cart in the parent interface
                         updateCartDisplay(); // Update the dialog's display after clearing
-                        // Removed: tableNumberField.setText(""); // Clear table number field
                         dispose(); // Close the dialog
                     } else {
                         JOptionPane.showMessageDialog(CartDialog.this, "Échec de la commande. Veuillez réessayer.", "Erreur de Commande", JOptionPane.ERROR_MESSAGE);
@@ -236,12 +219,18 @@ public class ClientMenuInterface extends JFrame { // Class name
     private static final Color COLOR_PANEL_BORDER = COLOR_PANEL_BACKGROUND.darker();
 
     private JPanel menuItemsPanel; // Panel to hold the grid of menu items
+    private JComboBox<Menu> menuComboBox; // Combo box to select menus
     private List<CartItem> shoppingCart; // This list holds the items in the cart
     private int loggedInClientId = -1; // Field to store the logged-in client's ID
 
 
-    // Constructor
-    // Modified constructor to accept the logged-in client's ID
+    /**
+     * Constructs the ClientMenuInterface.
+     *
+     * @param clientId The ID of the currently logged-in client.
+     * If login is handled elsewhere, this might be passed from there.
+     * If no login is needed, you could potentially remove this parameter.
+     */
     public ClientMenuInterface(int clientId) {
         this.loggedInClientId = clientId; // Store the client ID
 
@@ -255,12 +244,13 @@ public class ClientMenuInterface extends JFrame { // Class name
         setLocationRelativeTo(null);
 
         // Create the main panel using the custom BackgroundPanel
-        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg"); // Ensure this path is correct
+        // Make sure "background.jpg" exists in the correct location or provide a full path
+        BackgroundPanel mainPanel = new BackgroundPanel("background.jpg");
         mainPanel.setLayout(new GridBagLayout());
 
         GridBagConstraints mainGbc = new GridBagConstraints();
         mainGbc.insets = new Insets(10, 10, 10, 10);
-        mainGbc.anchor = GridBagConstraints.CENTER;
+
 
         // Back Icon Label (top left)
         JLabel backIconLabel = new JLabel();
@@ -268,121 +258,257 @@ public class ClientMenuInterface extends JFrame { // Class name
 
         ImageIcon backIcon = null;
         try {
-            Image img = ImageIO.read(new File("arrow.png")); // Using the name you provided for arrow.png
-            // Removed scaling to keep original icon size
-            // Image scaledImg = img.getScaledInstance(30, 30, Image.SCALE_SMOOTH);
-            backIcon = new ImageIcon(img);
+            // Load from a file:
+            // IMPORTANT: Update this path to where your back arrow icon is located
+            Image img = ImageIO.read(new File("arrow.png"));
+            Image scaledImg = img.getScaledInstance(30, 30, Image.SCALE_SMOOTH); // Scale the image
+            backIcon = new ImageIcon(scaledImg);
+
         } catch (Exception e) {
             System.err.println("Error loading back arrow icon: " + e.getMessage());
+            backIconLabel.setText("Back");
+            backIconLabel.setForeground(COLOR_TEXT_DARK);
         }
 
         if (backIcon != null) {
             backIconLabel.setIcon(backIcon);
-            backIconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            backIconLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-            backIconLabel.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    ClientMenuInterface.this.dispose();
-                    SwingUtilities.invokeLater(new Runnable() {
-                        public void run() {
-                            // Assuming you want to return to the Login screen for now,
-                            // or a different interface depending on your flow.
-                            new Login().setVisible(true);
-                        }
-                    });
-                }
-            });
-            mainGbc.gridx = 0;
-            mainGbc.gridy = 0;
-            mainGbc.anchor = GridBagConstraints.NORTHWEST;
-            mainGbc.insets = new Insets(10, 10, 0, 0);
-            mainPanel.add(backIconLabel, mainGbc);
         }
+
+        backIconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        backIconLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        backIconLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                ClientMenuInterface.this.dispose();
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        // Assuming you return to the Login screen.
+                        // Change this if you have a different previous screen.
+                        new Login().setVisible(true);
+                    }
+                });
+            }
+        });
+        mainGbc.gridx = 0;
+        mainGbc.gridy = 0;
+        mainGbc.anchor = GridBagConstraints.NORTHWEST;
+        mainGbc.insets = new Insets(10, 10, 0, 0);
+        mainPanel.add(backIconLabel, mainGbc);
+
 
         // Shopping Cart Icon (top right)
         JLabel cartIconLabel = new JLabel();
         cartIconLabel.setOpaque(false);
         ImageIcon cartIcon = null;
         try {
-            Image img = ImageIO.read(new File("shopping-cart.png")); // Using the name you provided for shopping-cart.png
-            // Removed scaling to keep original icon size
-            // Image scaledImg = img.getScaledInstance(40, 40, Image.SCALE_SMOOTH); // Resize to 40x40 pixels
-            cartIcon = new ImageIcon(img);
+            // Make sure "shopping-cart.png" exists in the correct location or provide a full path
+            Image img = ImageIO.read(new File("shopping-cart.png"));
+            Image scaledImg = img.getScaledInstance(40, 40, Image.SCALE_SMOOTH); // Resize to 40x40 pixels
+            cartIcon = new ImageIcon(scaledImg);
         } catch (Exception e) {
             System.err.println("Error loading shopping cart icon: " + e.getMessage());
+            cartIconLabel.setText("Cart");
+            cartIconLabel.setForeground(COLOR_TEXT_DARK);
         }
 
         if (cartIcon != null) {
             cartIconLabel.setIcon(cartIcon);
-            cartIconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            cartIconLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-            cartIconLabel.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    // Show the CartDialog when the icon is clicked
-                    CartDialog cartDialog = new CartDialog(ClientMenuInterface.this, ClientMenuInterface.this);
-                    cartDialog.setVisible(true);
-                }
-            });
-            mainGbc.gridx = 1; // Adjusted gridx to the right of the title
-            mainGbc.gridy = 0;
-            mainGbc.anchor = GridBagConstraints.NORTHEAST;
-            mainGbc.insets = new Insets(10, 0, 0, 10);
-            mainGbc.weightx = 1.0; // Push the cart icon to the right
-            mainGbc.fill = GridBagConstraints.NONE; // Do not fill
-            mainPanel.add(cartIconLabel, mainGbc);
         }
+
+        cartIconLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        cartIconLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        cartIconLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Show the CartDialog when the icon is clicked
+                CartDialog cartDialog = new CartDialog(ClientMenuInterface.this, ClientMenuInterface.this);
+                cartDialog.setVisible(true);
+            }
+        });
+        mainGbc.gridx = 2; // Positioned to the right
+        mainGbc.gridy = 0;
+        mainGbc.anchor = GridBagConstraints.NORTHEAST;
+        mainGbc.insets = new Insets(10, 0, 0, 10);
+        mainGbc.weightx = 1.0; // Push to the right
+        mainGbc.fill = GridBagConstraints.NONE; // Do not fill
+        mainPanel.add(cartIconLabel, mainGbc);
 
 
         // Title Label (Centered)
         JLabel titleLabel = new JLabel("Notre Menu Délicieux");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 40));
         titleLabel.setForeground(COLOR_TEXT_DARK);
-        mainGbc.gridx = 0;
+        mainGbc.gridx = 1; // Center column
         mainGbc.gridy = 0;
-        mainGbc.gridwidth = 2; // Span across the space needed for title and cart icon
         mainGbc.anchor = GridBagConstraints.NORTH;
         mainGbc.insets = new Insets(20, 10, 20, 10);
         mainGbc.weightx = 0.0; // Do not take extra horizontal space
         mainGbc.fill = GridBagConstraints.NONE; // Do not fill
         mainPanel.add(titleLabel, mainGbc);
 
+        // Menu Selection ComboBox
+        menuComboBox = new JComboBox<>();
+        menuComboBox.setFont(new Font("Arial", Font.PLAIN, 16));
+        menuComboBox.setBackground(COLOR_INPUT_FIELD_BACKGROUND);
+        menuComboBox.setPreferredSize(new Dimension(200, 30)); // Give it a preferred size
+
+
+        // Set a custom renderer to display Menu objects by name
+        menuComboBox.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Menu) {
+                    // Use getNomMenu() as per your Menu class
+                    setText(((Menu) value).getNomMenu());
+                }
+                return this;
+            }
+        });
+
+        // Add action listener to the combo box
+        menuComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Menu selectedMenu = (Menu) menuComboBox.getSelectedItem();
+                // Use getIdMenu() as per your Menu class
+                if (selectedMenu != null && selectedMenu.getIdMenu() != -1) { // Check if a valid menu is selected (ID -1 used for placeholder if applicable)
+                    loadMenuItems(selectedMenu.getIdMenu()); // Load plates for the selected menu
+                } else {
+                    // Handle the case where nothing is selected or a placeholder item is used
+                    // Clear displayed items and show a message
+                    menuItemsPanel.removeAll();
+                    JLabel selectMenuLabel = new JLabel("Veuillez sélectionner un menu.");
+                    selectMenuLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+                    selectMenuLabel.setForeground(COLOR_TEXT_DARK);
+                    JPanel centeredPanel = new JPanel(new GridBagLayout());
+                    centeredPanel.setOpaque(false);
+                    centeredPanel.add(selectMenuLabel);
+                    menuItemsPanel.setLayout(new GridBagLayout()); // Set layout for centering
+                    menuItemsPanel.add(centeredPanel, new GridBagConstraints());
+                    menuItemsPanel.revalidate();
+                    menuItemsPanel.repaint();
+                }
+            }
+        });
+
+
+        mainGbc.gridx = 1; // Center column, below title
+        mainGbc.gridy = 1;
+        mainGbc.anchor = GridBagConstraints.CENTER; // Center the combo box
+        mainGbc.insets = new Insets(0, 10, 10, 10); // Padding below combo box
+        mainGbc.fill = GridBagConstraints.NONE; // Don't stretch the combo box
+        mainPanel.add(menuComboBox, mainGbc);
+
 
         // Menu Items Panel (Main content area)
         menuItemsPanel = new JPanel();
         menuItemsPanel.setBackground(new Color(250, 246, 233, 150)); // Semi-transparent background
-        menuItemsPanel.setLayout(new GridLayout(0, 4, 20, 20)); // Rows=0 (automatic), Cols=4, Hgap=20, Vgap=20
+        // Initial layout might be GridBagLayout to center a "Select Menu" message
+        menuItemsPanel.setLayout(new GridBagLayout());
         JScrollPane menuScrollPane = new JScrollPane(menuItemsPanel);
         menuScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         menuScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         menuScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        menuScrollPane.setOpaque(false);
-        menuScrollPane.getViewport().setOpaque(false);
+        menuScrollPane.setOpaque(false); // *** Fixed typo: Was scrollPane, should be menuScrollPane ***
+        menuScrollPane.getViewport().setOpaque(false); // *** Fixed typo: Was scrollPane, should be menuScrollPane ***
+
 
         mainGbc.gridx = 0;
-        mainGbc.gridy = 1;
-        mainGbc.gridwidth = 2; // Span across the main content area
+        mainGbc.gridy = 2; // Below the combo box
+        mainGbc.gridwidth = 3; // Span across all columns
         mainGbc.weightx = 1.0; // Take all horizontal space
         mainGbc.weighty = 1.0; // Take all vertical space
         mainGbc.fill = GridBagConstraints.BOTH;
         mainGbc.insets = new Insets(10, 50, 10, 50); // Padding around the menu items
         mainPanel.add(menuScrollPane, mainGbc);
 
-        // Removed the static cart panel from the main layout
-
-
         add(mainPanel);
 
-        // Load menu items from the database on startup
-        loadMenuItems();
-        // No need to update cart display or total price here, as the dialog handles it on open
+        // Populate the menu combo box when the interface is created
+        populateMenuComboBox();
+
+        // The action listener of the combo box will handle the initial load
+        // after populateMenuComboBox selects the first item (if any).
     }
 
     // Default constructor (used for testing or if client ID is set later)
+    // Calls the main constructor with a default invalid client ID
     public ClientMenuInterface() {
-        this(-1); // Call the main constructor with a default invalid ID
+        this(-1);
+    }
+
+
+    /**
+     * Fetches all menus from the database and populates the menu combo box.
+     */
+    private void populateMenuComboBox() {
+        MenuDAO menuDAO = new MenuDAO();
+        List<Menu> menus = menuDAO.getMenuList(); // Using your getMenuList() method
+
+        menuComboBox.removeAllItems(); // Clear existing items
+
+        if (menus != null && !menus.isEmpty()) {
+            // Add actual menu objects to the combo box
+            for (Menu menu : menus) {
+                menuComboBox.addItem(menu);
+            }
+            // Select the first item to trigger the initial load via listener
+            menuComboBox.setSelectedIndex(0);
+
+        } else {
+            // Handle case where no menus are found
+            menuComboBox.setEnabled(false); // Disable combo box
+            // Display a message in the menu items panel
+            menuItemsPanel.removeAll();
+            JLabel noMenusLabel = new JLabel("Aucun menu n'est disponible pour le moment.");
+            noMenusLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+            noMenusLabel.setForeground(COLOR_TEXT_DARK);
+            JPanel centeredPanel = new JPanel(new GridBagLayout());
+            centeredPanel.setOpaque(false);
+            centeredPanel.add(noMenusLabel);
+            menuItemsPanel.setLayout(new GridBagLayout()); // Set layout for centering
+            menuItemsPanel.add(centeredPanel, new GridBagConstraints());
+
+            menuItemsPanel.revalidate();
+            menuItemsPanel.repaint();
+        }
+    }
+
+
+    /**
+     * Loads menu items from the database filtered by the given menu ID.
+     * Updates the menuItemsPanel display.
+     *
+     * @param menuId The ID of the menu to display plates for.
+     */
+    private void loadMenuItems(int menuId) {
+        menuItemsPanel.removeAll(); // Clear existing items
+        // Restore GridLayout if items are expected
+        menuItemsPanel.setLayout(new GridLayout(0, 4, 20, 20));
+
+        PlatDAO platDAO = new PlatDAO();
+        List<Plat> plats = platDAO.getPlatsByMenuId(menuId);
+
+        if (plats != null && !plats.isEmpty()) {
+            for (Plat plat : plats) {
+                menuItemsPanel.add(new MenuItemPanel(plat)); // Add each plat to the menu display
+            }
+        } else {
+            // Use GridBagLayout to center the message when no items are found
+            menuItemsPanel.setLayout(new GridBagLayout()); // Set layout for centering
+            JLabel noItemsLabel = new JLabel("Aucun plat disponible pour ce menu.");
+            noItemsLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+            noItemsLabel.setForeground(COLOR_TEXT_DARK);
+            JPanel centeredPanel = new JPanel(new GridBagLayout()); // Use GridBagLayout for centering
+            centeredPanel.setOpaque(false);
+            centeredPanel.add(noItemsLabel);
+            menuItemsPanel.add(centeredPanel, new GridBagConstraints()); // Add centered panel
+        }
+
+        menuItemsPanel.revalidate();
+        menuItemsPanel.repaint();
     }
 
 
@@ -403,9 +529,9 @@ public class ClientMenuInterface extends JFrame { // Class name
                     BorderFactory.createLineBorder(new Color(230, 220, 200), 1), // Light border
                     BorderFactory.createEmptyBorder(10, 10, 10, 10) // Padding
             ));
-            setPreferredSize(new Dimension(180, 250)); // Adjusted preferred size to fit spinner and button
-            setMaximumSize(new Dimension(180, 250)); // Adjusted maximum size
-            setMinimumSize(new Dimension(180, 250)); // Adjusted minimum size
+            setPreferredSize(new Dimension(180, 280)); // Adjusted preferred size
+            setMaximumSize(new Dimension(180, 280)); // Adjusted maximum size
+            setMinimumSize(new Dimension(180, 280)); // Adjusted minimum size
 
 
             // Image Label
@@ -440,11 +566,15 @@ public class ClientMenuInterface extends JFrame { // Class name
             nameLabel.setForeground(COLOR_TEXT_DARK);
             nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
 
-            // Description Label
-            descriptionLabel = new JLabel("<html><body style='text-align:center;'>" + plat.getDescription() + "</body></html>"); // Use HTML for centering text
+            // Description Label - Use HTML for potential word wrapping and centering
+            descriptionLabel = new JLabel("<html><body style='text-align:center;'>" + plat.getDescription() + "</body></html>");
             descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
             descriptionLabel.setForeground(new Color(80, 80, 80));
             descriptionLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center horizontally
+            descriptionLabel.setVerticalAlignment(SwingConstants.TOP); // Align text to top if multiple lines
+            descriptionLabel.setPreferredSize(new Dimension(160, 40)); // Give it a preferred size for description
+            descriptionLabel.setMaximumSize(new Dimension(160, 60));
+
 
             // Price Label
             priceLabel = new JLabel(String.format("%.2f €", plat.getPrix())); // Format price with €
@@ -506,31 +636,10 @@ public class ClientMenuInterface extends JFrame { // Class name
             add(priceLabel); // Add price label
             add(Box.createRigidArea(new Dimension(0, 5))); // Spacer
             add(quantitySpinner); // Add quantity spinner
-            add(Box.createVerticalGlue()); // Push components to the top
+            add(Box.createVerticalGlue()); // Push components upwards
             add(addButton); // Add add to cart button
             add(Box.createRigidArea(new Dimension(0, 5))); // Spacer
         }
-    }
-
-    // This method loads menu items from the database
-    private void loadMenuItems() {
-        menuItemsPanel.removeAll(); // Clear existing items
-        PlatDAO platDAO = new PlatDAO();
-        List<Plat> plats = platDAO.getAllPlats(); // Assuming PlatDAO has getAllPlats
-
-        if (plats != null && !plats.isEmpty()) {
-            for (Plat plat : plats) {
-                menuItemsPanel.add(new MenuItemPanel(plat)); // Add each plat to the menu display
-            }
-        } else {
-            JLabel noItemsLabel = new JLabel("Aucun plat disponible pour le moment.");
-            noItemsLabel.setFont(new Font("Arial", Font.PLAIN, 18));
-            noItemsLabel.setForeground(COLOR_TEXT_DARK);
-            menuItemsPanel.add(noItemsLabel);
-        }
-
-        menuItemsPanel.revalidate();
-        menuItemsPanel.repaint();
     }
 
 
@@ -573,7 +682,7 @@ public class ClientMenuInterface extends JFrame { // Class name
     }
 
 
-    // Main method for standalone testing (already in the file)
+    // Main method for standalone testing
     public static void main(String[] args) {
         // Set the look and feel to Nimbus if available
         try {
@@ -589,9 +698,12 @@ public class ClientMenuInterface extends JFrame { // Class name
 
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                // For testing purposes, assuming a client with ID 1 is logged in.
-                // In a real application, you would get the actual client ID from your login process.
-                new ClientMenuInterface(1).setVisible(true); // Pass a placeholder client ID (e.g., 1)
+                // For testing purposes:
+                // Assuming a client with ID 1 is logged in.
+                // The menu selection will happen within the GUI.
+                int testClientId = 1; // Replace with actual logged-in client ID
+
+                new ClientMenuInterface(testClientId).setVisible(true); // Pass only client ID
             }
         });
     }
