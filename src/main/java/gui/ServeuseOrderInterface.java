@@ -466,8 +466,8 @@ public class ServeuseOrderInterface extends JFrame { // Changed class name
             // Load from a file:
             // IMPORTANT: Update this path to where your back arrow icon is located
             Image img = ImageIO.read(new File("arrow.png")); // Load image from file
-            Image scaledImg = img.getScaledInstance(30, 30, Image.SCALE_SMOOTH); // Resize to 30x30 pixels
-            backIcon = new ImageIcon(scaledImg); // Use scaled image
+          // Resize to 30x30 pixels
+            backIcon = new ImageIcon(img); // Use scaled image
 
         } catch (Exception e) {
             System.err.println("Error loading back arrow icon: " + e.getMessage());
