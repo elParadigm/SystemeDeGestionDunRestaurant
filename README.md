@@ -1,5 +1,10 @@
 # Système de gestion de restaurant en Java
 
+![Image 1](java1.jpg)
+![Image 2](java2.jpg)
+![Image 3](java3.jpg)
+![Image 4](java4.jpg)
+![Image 5](java5.jpg)
 
 Ce projet est un système de gestion de restaurant développé en Java, utilisant Java Swing pour l'interface graphique (GUI) et une base de données MySQL pour la persistance des données. Il a été créé dans le cadre d'un mini-projet universitaire, l'objectif étant de démontrer les principes de la programmation orientée objet (POO) et l'interaction avec une base de données.
 
