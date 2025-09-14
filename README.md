@@ -1,6 +1,5 @@
 # Système de gestion de restaurant en Java
 
-![Image 1](java1.jpg)
 ![Image 2](java2.jpg)
 ![Image 3](java3.jpg)
 ![Image 4](java4.jpg)
